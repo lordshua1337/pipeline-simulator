@@ -65,6 +65,48 @@ export default function HomePage() {
         </Link>
       </div>
 
+      {/* Example pipeline -- show what it looks like */}
+      <div className="max-w-4xl mx-auto px-6 pb-12">
+        <div className="rounded-xl p-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--blue)' }}>
+            Example: Sales Pipeline
+          </p>
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { stage: 'Lead', count: 24, color: 'var(--blue)' },
+              { stage: 'Qualified', count: 12, color: 'var(--purple)' },
+              { stage: 'Proposal', count: 7, color: 'var(--amber)' },
+              { stage: 'Negotiation', count: 3, color: 'var(--green)' },
+              { stage: 'Won', count: 2, color: 'var(--green)' },
+            ].map((s) => (
+              <div key={s.stage} className="text-center">
+                <div
+                  className="rounded-lg mb-2 mx-auto transition-all"
+                  style={{
+                    background: s.color,
+                    opacity: 0.2,
+                    height: `${Math.max(20, s.count * 3)}px`,
+                  }}
+                />
+                <div className="text-lg font-bold" style={{ color: 'var(--text)' }}>{s.count}</div>
+                <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.stage}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 mt-4 pt-4 text-xs" style={{ borderTop: '1px solid var(--border)' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Conversion: <span style={{ color: 'var(--green)' }}>8.3%</span>
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Avg cycle: <span style={{ color: 'var(--text)' }}>18 days</span>
+            </span>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Pipeline value: <span style={{ color: 'var(--blue)' }}>$342K</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Features Grid */}
       <div className="max-w-5xl mx-auto px-6 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
