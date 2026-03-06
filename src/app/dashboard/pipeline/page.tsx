@@ -39,6 +39,7 @@ import KanbanBoard from '@/components/KanbanBoard'
 import FunnelChart from '@/components/FunnelChart'
 import BottleneckHeatMap from '@/components/BottleneckHeatMap'
 import SimulationPanel from '@/components/SimulationPanel'
+import SensitivitySliders from '@/components/SensitivitySliders'
 import type { Item } from '@/lib/types'
 import type { AppState } from '@/lib/state'
 
@@ -296,6 +297,10 @@ function PipelineDetailPage() {
             benchmarks={template?.benchmarks}
           />
           <BottleneckHeatMap stages={stages} items={items} />
+          {/* Sensitivity Sliders */}
+          <div className="lg:col-span-2">
+            <SensitivitySliders stages={stages} items={items} history={history} />
+          </div>
           {/* Anomaly Detection */}
           <div
             className="p-6 rounded-xl lg:col-span-2"
