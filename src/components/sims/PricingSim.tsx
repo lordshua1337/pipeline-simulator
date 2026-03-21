@@ -263,32 +263,33 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="max-w-5xl mx-auto">
-        {/* Top row: base inputs + add variable */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-5">
-            {fields.map((f) => (
-              <div key={f.key} className="flex items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{f.label}</span>
-                <div className="relative">
-                  {f.prefix && <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>{f.prefix}</span>}
-                  <input
-                    type="number"
-                    value={data[f.key] as number}
-                    onChange={(e) => onChange({ ...data, [f.key]: parseFloat(e.target.value) || 0 })}
-                    className="sim-input w-24 text-right"
-                    style={{ paddingLeft: f.prefix ? '20px' : '12px', fontSize: '12px' }}
-                  />
-                </div>
+        {/* Base inputs */}
+        <div className="flex items-center gap-5 mb-4">
+          {fields.map((f) => (
+            <div key={f.key} className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{f.label}</span>
+              <div className="relative">
+                {f.prefix && <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>{f.prefix}</span>}
+                <input
+                  type="number"
+                  value={data[f.key] as number}
+                  onChange={(e) => onChange({ ...data, [f.key]: parseFloat(e.target.value) || 0 })}
+                  className="sim-input w-24 text-right"
+                  style={{ paddingLeft: f.prefix ? '20px' : '12px', fontSize: '12px' }}
+                />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
 
+        {/* Add variable row */}
+        <div className="flex items-center gap-2 mb-6">
           <div className="relative">
             <button
               onClick={() => setShowVarPicker(!showVarPicker)}
               disabled={unusedVars.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40"
-              style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid rgba(16,185,129,0.15)' }}
+              style={{ background: 'var(--bg-alt)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
             >
               <Plus className="w-3.5 h-3.5" />
               Add Variable
@@ -322,7 +323,7 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
           </div>
         </div>
 
-        {/* Active variables */}
+        {/* Active variables -- same row or below */}
         {activeVars.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {activeVars.map((av) => {
