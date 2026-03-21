@@ -78,26 +78,31 @@ export function BaseFlowNode({ node, selected, onSelect, onDuplicate, onPortClic
     <div ref={setNodeRef} style={style} className="group">
       {/* PORTS -- completely separate from the drag handle */}
       {/* They use onClick which does NOT interfere with @dnd-kit's pointerDown */}
-      <div
-        className={portCls}
-        style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }}
-        onClick={(e) => { e.stopPropagation(); onPortClick?.(node.id) }}
-      />
-      <div
-        className={portCls}
-        style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }}
-        onClick={(e) => { e.stopPropagation(); onPortClick?.(node.id) }}
-      />
-      <div
-        className={portCls}
-        style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)' }}
-        onClick={(e) => { e.stopPropagation(); onPortClick?.(node.id) }}
-      />
-      <div
-        className={portCls}
-        style={{ left: -8, top: '50%', transform: 'translateY(-50%)' }}
-        onClick={(e) => { e.stopPropagation(); onPortClick?.(node.id) }}
-      />
+      {(['top', 'right', 'bottom', 'left'] as const).map((side) => {
+        const posStyle: React.CSSProperties =
+          side === 'top' ? { top: -8, left: '50%', transform: 'translateX(-50%)' } :
+          side === 'right' ? { right: -8, top: '50%', transform: 'translateY(-50%)' } :
+          side === 'bottom' ? { bottom: -8, left: '50%', transform: 'translateX(-50%)' } :
+          { left: -8, top: '50%', transform: 'translateY(-50%)' }
+
+        return (
+          <div
+            key={side}
+            className={portCls}
+            style={posStyle}
+            onPointerDown={(e) => {
+              // Stop @dnd-kit PointerSensor from seeing this event.
+              // Safe because ports are siblings of the drag body, not children.
+              e.stopPropagation()
+              e.preventDefault()
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onPortClick?.(node.id)
+            }}
+          />
+        )
+      })}
 
       {/* NODE BODY -- this is the drag handle */}
       <div
