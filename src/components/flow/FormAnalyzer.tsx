@@ -175,9 +175,16 @@ export function FormAnalyzer() {
                   </td>
                   <td className="px-4 py-2 text-right">
                     {i > 0 ? (
-                      <span className="text-sm font-mono text-red-500">
-                        -{row.dropOff.toLocaleString()}
-                      </span>
+                      <input
+                        type="number"
+                        value={row.dropOff}
+                        onChange={(e) => {
+                          const newDropOff = parseInt(e.target.value) || 0
+                          const prev = steps[i - 1].submissions
+                          updateStep(row.id, 'submissions', Math.max(0, prev - newDropOff))
+                        }}
+                        className="text-sm font-mono text-red-500 bg-transparent outline-none w-full text-right hover:bg-gray-50 focus:bg-gray-50 rounded px-1 py-0.5"
+                      />
                     ) : (
                       <span className="text-sm font-mono text-gray-300">--</span>
                     )}
