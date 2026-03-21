@@ -121,11 +121,11 @@ export function BaseFlowNode({ node, selected, onSelect, onDuplicate, onPortDown
           style={{ backgroundColor: `${meta.color}10` }}
         >
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: meta.color }}
+            className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{ backgroundColor: variant?.icon ? 'white' : meta.color }}
           >
-            {variant ? (
-              <span className="text-[9px] font-bold text-white">{variant.emoji}</span>
+            {variant?.icon ? (
+              <img src={variant.icon} alt="" className="w-4 h-4 object-contain" />
             ) : (
               <Icon className="w-3.5 h-3.5 text-white" />
             )}

@@ -77,28 +77,42 @@ export function NodeConfigPanel({ node, onUpdate, onDelete, onClose }: NodeConfi
         />
       </div>
 
-      {/* Variant selector */}
+      {/* Variant selector with icons */}
       {NODE_VARIANTS[node.type] && NODE_VARIANTS[node.type].length > 1 && (
         <div className="px-4 py-3 border-b border-gray-100">
-          <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+          <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
             Type
           </label>
-          <select
-            value={(node.config?.variant as string) || ''}
-            onChange={(e) => {
-              const v = NODE_VARIANTS[node.type].find((v) => v.id === e.target.value)
-              onUpdate(node.id, {
-                config: { ...node.config, variant: e.target.value },
-                ...(v ? { label: v.label } : {}),
-              })
-            }}
-            className="w-full px-2.5 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:bg-white appearance-none cursor-pointer"
-          >
-            <option value="">Select type...</option>
-            {NODE_VARIANTS[node.type].map((v) => (
-              <option key={v.id} value={v.id}>{v.label}</option>
-            ))}
-          </select>
+          <div className="max-h-48 overflow-y-auto space-y-0.5">
+            {NODE_VARIANTS[node.type].map((v) => {
+              const isActive = (node.config?.variant as string) === v.id
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => {
+                    onUpdate(node.id, {
+                      config: { ...node.config, variant: v.id },
+                      label: v.label,
+                    })
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-all ${
+                    isActive ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {v.icon ? (
+                    <img src={v.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+                  ) : (
+                    <span className="w-4 h-4 rounded bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-500 flex-shrink-0">
+                      {v.emoji}
+                    </span>
+                  )}
+                  <span className={`text-[11px] ${isActive ? 'font-medium text-blue-700' : 'text-gray-700'}`}>
+                    {v.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
