@@ -62,12 +62,18 @@ export interface CohortData {
   readonly avgRevenuePerUser: number
 }
 
+export interface PricingVariable {
+  readonly id: string
+  readonly values: Readonly<Record<string, number>>
+}
+
 export interface PricingData {
   readonly currentPrice: number
   readonly currentVolume: number
   readonly elasticity: number
   readonly costPerUnit: number
   readonly pricePoints: readonly number[]
+  readonly activeVariables: readonly PricingVariable[]
 }
 
 export interface LeadSignal {
@@ -150,6 +156,7 @@ export const DEFAULT_PRICING: PricingData = {
   elasticity: 1.5,
   costPerUnit: 12,
   pricePoints: [19, 29, 39, 49, 59, 69, 79, 99, 129, 149],
+  activeVariables: [],
 }
 
 export const DEFAULT_LEAD_SCORING: LeadScoringData = {

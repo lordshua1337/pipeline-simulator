@@ -2,21 +2,21 @@
 
 import { useMemo, useState, useCallback } from 'react'
 import type { PricingData } from '@/lib/workspace-types'
-import { Plus, X, TrendingUp, TrendingDown, Users, Repeat, Gift, Percent, ShieldCheck, Package, Megaphone, Calendar, Scale, Building2, CreditCard, Truck, Clock, BadgeDollarSign } from 'lucide-react'
+import { Plus, X, TrendingUp, TrendingDown, Users, Repeat, Gift, Percent, ShieldCheck, Package, Calendar, Scale, Building2, CreditCard, Truck, Clock, BadgeDollarSign, Info } from 'lucide-react'
 
 interface PricingSimProps {
   data: PricingData
   onChange: (data: PricingData) => void
 }
 
-// Variable definitions -- each one has a preset effect on the simulation
-interface PricingVariable {
+interface VarDefinition {
   readonly id: string
   readonly name: string
   readonly icon: typeof TrendingUp
   readonly color: string
   readonly description: string
-  readonly fields: readonly { key: string; label: string; defaultValue: number; suffix: string; step: string }[]
+  readonly tooltip: string
+  readonly fields: readonly { key: string; label: string; defaultValue: number; suffix: string; step: string; tip: string }[]
   readonly effect: (base: AnalysisRow, values: Record<string, number>) => AnalysisRow
 }
 
@@ -29,15 +29,16 @@ interface AnalysisRow {
   margin: number
 }
 
-const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
+const AVAILABLE_VARIABLES: readonly VarDefinition[] = [
   {
     id: 'cac',
     name: 'Customer Acquisition Cost',
     icon: Users,
     color: '#3B82F6',
     description: 'Factor in cost to acquire each customer',
+    tooltip: 'The total cost to acquire one paying customer -- includes ad spend, sales time, onboarding. This gets subtracted from profit at every price point. If your CAC is higher than your margin, you lose money on every sale.',
     fields: [
-      { key: 'cacPerCustomer', label: 'CAC', defaultValue: 25, suffix: '$', step: '1' },
+      { key: 'cacPerCustomer', label: 'CAC', defaultValue: 25, suffix: '$', step: '1', tip: 'Total blended cost to acquire one customer' },
     ],
     effect: (row, vals) => {
       const totalCac = row.volume * vals.cacPerCustomer
@@ -50,9 +51,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: TrendingDown,
     color: '#EF4444',
     description: 'For subscriptions -- reduce effective volume by churn rate',
+    tooltip: 'Subscription churn means you lose a percentage of customers every month. This calculates lifetime value: price x months x retention. A 5% monthly churn means your average customer stays ~20 months.',
     fields: [
-      { key: 'churnRate', label: 'Monthly Churn', defaultValue: 5, suffix: '%', step: '0.5' },
-      { key: 'avgLifetimeMonths', label: 'Avg Lifetime', defaultValue: 12, suffix: 'mo', step: '1' },
+      { key: 'churnRate', label: 'Monthly Churn', defaultValue: 5, suffix: '%', step: '0.5', tip: 'What % of customers cancel each month' },
+      { key: 'avgLifetimeMonths', label: 'Avg Lifetime', defaultValue: 12, suffix: 'mo', step: '1', tip: 'How many months the average customer stays' },
     ],
     effect: (row, vals) => {
       const ltv = row.price * vals.avgLifetimeMonths * (1 - vals.churnRate / 100)
@@ -66,9 +68,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: TrendingUp,
     color: '#10B981',
     description: 'Additional revenue per customer from upsells',
+    tooltip: 'What percentage of buyers also purchase an upsell or cross-sell. This adds revenue without adding acquisition cost -- pure margin boost.',
     fields: [
-      { key: 'upsellRate', label: 'Upsell Rate', defaultValue: 20, suffix: '%', step: '1' },
-      { key: 'upsellValue', label: 'Upsell Value', defaultValue: 35, suffix: '$', step: '1' },
+      { key: 'upsellRate', label: 'Upsell Rate', defaultValue: 20, suffix: '%', step: '1', tip: '% of buyers who also buy the upsell' },
+      { key: 'upsellValue', label: 'Upsell Value', defaultValue: 35, suffix: '$', step: '1', tip: 'Revenue from each upsell purchase' },
     ],
     effect: (row, vals) => {
       const upsellRev = row.volume * (vals.upsellRate / 100) * vals.upsellValue
@@ -81,8 +84,9 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Repeat,
     color: '#F59E0B',
     description: 'Percentage of sales refunded',
+    tooltip: 'Revenue you have to give back. Higher prices often increase refund rates. At 8%, you lose $8 of every $100 in revenue plus the processing fees on both transactions.',
     fields: [
-      { key: 'refundRate', label: 'Refund Rate', defaultValue: 8, suffix: '%', step: '0.5' },
+      { key: 'refundRate', label: 'Refund Rate', defaultValue: 8, suffix: '%', step: '0.5', tip: '% of sales that get refunded' },
     ],
     effect: (row, vals) => {
       const lost = row.revenue * (vals.refundRate / 100)
@@ -95,9 +99,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Gift,
     color: '#8B5CF6',
     description: 'Run a discount on a portion of sales',
+    tooltip: 'Models a promotion where X% of your sales happen at a discounted price. Shows the real revenue impact of running sales -- often the volume uplift does not compensate for the margin loss.',
     fields: [
-      { key: 'discountPct', label: 'Discount', defaultValue: 20, suffix: '%', step: '1' },
-      { key: 'discountedShare', label: 'Sales at Discount', defaultValue: 30, suffix: '%', step: '1' },
+      { key: 'discountPct', label: 'Discount', defaultValue: 20, suffix: '%', step: '1', tip: 'How much off the list price' },
+      { key: 'discountedShare', label: 'Sales at Discount', defaultValue: 30, suffix: '%', step: '1', tip: '% of total sales made at the discount' },
     ],
     effect: (row, vals) => {
       const discountedVolume = row.volume * (vals.discountedShare / 100)
@@ -113,8 +118,9 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Percent,
     color: '#0891B2',
     description: 'Percentage of revenue paid as sales commission',
+    tooltip: 'What you pay your sales team as a % of each deal. At 10% commission on a $49 product, that is $4.90 per sale coming off your margin.',
     fields: [
-      { key: 'commissionRate', label: 'Commission', defaultValue: 10, suffix: '%', step: '1' },
+      { key: 'commissionRate', label: 'Commission', defaultValue: 10, suffix: '%', step: '1', tip: '% of revenue paid to sales reps' },
     ],
     effect: (row, vals) => {
       const comm = row.revenue * (vals.commissionRate / 100)
@@ -127,8 +133,9 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: ShieldCheck,
     color: '#EC4899',
     description: 'Per-customer support/service cost',
+    tooltip: 'The cost to serve each customer after the sale -- support tickets, account management, onboarding. Scales linearly with volume.',
     fields: [
-      { key: 'supportCost', label: 'Cost / Customer', defaultValue: 8, suffix: '$', step: '1' },
+      { key: 'supportCost', label: 'Cost / Customer', defaultValue: 8, suffix: '$', step: '1', tip: 'Blended support cost per customer per month' },
     ],
     effect: (row, vals) => {
       const sc = row.volume * vals.supportCost
@@ -141,9 +148,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Package,
     color: '#6366F1',
     description: 'Offer a bundle that increases perceived value + volume',
+    tooltip: 'Bundling products increases perceived value and order volume, but at a lower per-unit price. Models the tradeoff between higher volume and lower margin.',
     fields: [
-      { key: 'bundleUplift', label: 'Volume Uplift', defaultValue: 15, suffix: '%', step: '1' },
-      { key: 'bundleDiscount', label: 'Bundle Discount', defaultValue: 10, suffix: '%', step: '1' },
+      { key: 'bundleUplift', label: 'Volume Uplift', defaultValue: 15, suffix: '%', step: '1', tip: 'How much volume increases from the bundle offer' },
+      { key: 'bundleDiscount', label: 'Bundle Discount', defaultValue: 10, suffix: '%', step: '1', tip: 'Price reduction for the bundle' },
     ],
     effect: (row, vals) => {
       const newVol = Math.round(row.volume * (1 + vals.bundleUplift / 100))
@@ -159,9 +167,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Calendar,
     color: '#14B8A6',
     description: 'Model peak/off-peak demand variation',
+    tooltip: 'If your business has seasonal swings, this averages demand across peak and off-peak months to show annualized pricing impact.',
     fields: [
-      { key: 'peakMultiplier', label: 'Peak Multiplier', defaultValue: 150, suffix: '%', step: '5' },
-      { key: 'peakMonths', label: 'Peak Months', defaultValue: 4, suffix: 'mo', step: '1' },
+      { key: 'peakMultiplier', label: 'Peak Multiplier', defaultValue: 150, suffix: '%', step: '5', tip: 'How much volume increases during peak months (100% = normal)' },
+      { key: 'peakMonths', label: 'Peak Months', defaultValue: 4, suffix: 'mo', step: '1', tip: 'How many months are considered peak season' },
     ],
     effect: (row, vals) => {
       const peakVol = row.volume * (vals.peakMultiplier / 100)
@@ -178,9 +187,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Scale,
     color: '#7C3AED',
     description: 'COGS increases as volume scales (diminishing returns)',
+    tooltip: 'Above a certain volume, your per-unit costs go up (hiring, infrastructure, quality control). Models the point where scaling gets expensive.',
     fields: [
-      { key: 'scalingThreshold', label: 'Threshold', defaultValue: 500, suffix: 'units', step: '50' },
-      { key: 'scalingMultiplier', label: 'Cost Multiplier', defaultValue: 130, suffix: '%', step: '5' },
+      { key: 'scalingThreshold', label: 'Threshold', defaultValue: 500, suffix: 'units', step: '50', tip: 'Volume at which costs start increasing' },
+      { key: 'scalingMultiplier', label: 'Cost Multiplier', defaultValue: 130, suffix: '%', step: '5', tip: 'How much COGS increases above threshold (130% = 30% more)' },
     ],
     effect: (row, vals) => {
       if (row.volume <= vals.scalingThreshold) return row
@@ -195,8 +205,9 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Building2,
     color: '#475569',
     description: 'Monthly fixed costs (rent, salaries, tools, etc.)',
+    tooltip: 'Costs that do not change with volume -- rent, salaries, software, insurance. These eat into profit at every price point equally.',
     fields: [
-      { key: 'monthlyOverhead', label: 'Monthly', defaultValue: 15000, suffix: '$', step: '1000' },
+      { key: 'monthlyOverhead', label: 'Monthly', defaultValue: 15000, suffix: '$', step: '1000', tip: 'Total monthly fixed expenses' },
     ],
     effect: (row, vals) => {
       return { ...row, cost: row.cost + vals.monthlyOverhead, profit: row.profit - vals.monthlyOverhead, margin: row.revenue > 0 ? ((row.profit - vals.monthlyOverhead) / row.revenue) * 100 : 0 }
@@ -208,9 +219,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: CreditCard,
     color: '#0369A1',
     description: 'Stripe/processor fees on every transaction',
+    tooltip: 'Credit card processors take a cut of every sale. Stripe is 2.9% + $0.30. At low price points this is a significant margin hit.',
     fields: [
-      { key: 'processingPct', label: 'Fee', defaultValue: 2.9, suffix: '%', step: '0.1' },
-      { key: 'perTxnFee', label: 'Per Txn', defaultValue: 0.30, suffix: '$', step: '0.05' },
+      { key: 'processingPct', label: 'Fee', defaultValue: 2.9, suffix: '%', step: '0.1', tip: 'Percentage fee per transaction (Stripe: 2.9%)' },
+      { key: 'perTxnFee', label: 'Per Txn', defaultValue: 0.30, suffix: '$', step: '0.05', tip: 'Flat fee per transaction (Stripe: $0.30)' },
     ],
     effect: (row, vals) => {
       const fees = (row.revenue * vals.processingPct / 100) + (row.volume * vals.perTxnFee)
@@ -223,8 +235,9 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Truck,
     color: '#92400E',
     description: 'Per-unit fulfillment and shipping cost',
+    tooltip: 'Cost to pick, pack, and ship each unit. For physical products this is a major cost driver. For digital products this is near zero.',
     fields: [
-      { key: 'shippingCost', label: 'Per Unit', defaultValue: 5.50, suffix: '$', step: '0.50' },
+      { key: 'shippingCost', label: 'Per Unit', defaultValue: 5.50, suffix: '$', step: '0.50', tip: 'Average cost to fulfill and ship one order' },
     ],
     effect: (row, vals) => {
       const sc = row.volume * vals.shippingCost
@@ -237,9 +250,10 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: Clock,
     color: '#B45309',
     description: 'Delay between sale and cash collection (cash flow impact)',
+    tooltip: 'If you invoice net-30 or have payment processing delays, money sits uncollected. The cost of capital is what that delay costs you (opportunity cost or interest on credit lines).',
     fields: [
-      { key: 'daysToCollect', label: 'Days to Collect', defaultValue: 30, suffix: 'days', step: '5' },
-      { key: 'costOfCapital', label: 'Cost of Capital', defaultValue: 8, suffix: '%/yr', step: '1' },
+      { key: 'daysToCollect', label: 'Days to Collect', defaultValue: 30, suffix: 'days', step: '5', tip: 'Average days between sale and receiving cash' },
+      { key: 'costOfCapital', label: 'Cost of Capital', defaultValue: 8, suffix: '%/yr', step: '1', tip: 'Annual cost of capital (loan rate or opportunity cost)' },
     ],
     effect: (row, vals) => {
       const dailyRate = vals.costOfCapital / 100 / 365
@@ -253,8 +267,9 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     icon: BadgeDollarSign,
     color: '#059669',
     description: 'Customers buy more than once -- multiply by repeat purchase rate',
+    tooltip: 'If customers buy more than once, your true revenue per customer is price x number of purchases. This multiplies both revenue AND costs by the repeat rate.',
     fields: [
-      { key: 'avgPurchases', label: 'Avg Purchases', defaultValue: 2.5, suffix: 'x', step: '0.5' },
+      { key: 'avgPurchases', label: 'Avg Purchases', defaultValue: 2.5, suffix: 'x', step: '0.5', tip: 'Average number of purchases per customer lifetime' },
     ],
     effect: (row, vals) => {
       const ltvRev = row.revenue * vals.avgPurchases
@@ -277,25 +292,35 @@ function fmt(n: number): string {
 }
 
 export function PricingSim({ data, onChange }: PricingSimProps) {
-  const [activeVars, setActiveVars] = useState<{ id: string; values: Record<string, number> }[]>([])
   const [showVarPicker, setShowVarPicker] = useState(false)
 
-  const addVariable = useCallback((varDef: PricingVariable) => {
+  // Use persisted active variables from data
+  const activeVars = data.activeVariables || []
+
+  const setActiveVars = useCallback((updater: { id: string; values: Record<string, number> }[] | ((prev: { id: string; values: Record<string, number> }[]) => { id: string; values: Record<string, number> }[])) => {
+    const next = typeof updater === 'function' ? updater([...activeVars]) : updater
+    onChange({ ...data, activeVariables: next })
+  }, [activeVars, data, onChange])
+
+  const addVariable = useCallback((varDef: VarDefinition) => {
     const defaults: Record<string, number> = {}
     for (const f of varDef.fields) defaults[f.key] = f.defaultValue
-    setActiveVars((prev) => [...prev, { id: varDef.id, values: defaults }])
+    onChange({ ...data, activeVariables: [...activeVars, { id: varDef.id, values: defaults }] })
     setShowVarPicker(false)
-  }, [])
+  }, [activeVars, data, onChange])
 
   const removeVariable = useCallback((varId: string) => {
-    setActiveVars((prev) => prev.filter((v) => v.id !== varId))
-  }, [])
+    onChange({ ...data, activeVariables: activeVars.filter((v) => v.id !== varId) })
+  }, [activeVars, data, onChange])
 
   const updateVarValue = useCallback((varId: string, key: string, value: number) => {
-    setActiveVars((prev) => prev.map((v) =>
-      v.id === varId ? { ...v, values: { ...v.values, [key]: value } } : v
-    ))
-  }, [])
+    onChange({
+      ...data,
+      activeVariables: activeVars.map((v) =>
+        v.id === varId ? { ...v, values: { ...v.values, [key]: value } } : v
+      ),
+    })
+  }, [activeVars, data, onChange])
 
   const unusedVars = AVAILABLE_VARIABLES.filter((v) => !activeVars.some((a) => a.id === v.id))
 
@@ -328,11 +353,11 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
   const maxRevenue = Math.max(...analysis.map((a) => a.revenue))
   const maxProfit = Math.max(...analysis.map((a) => Math.max(0, a.profit)))
 
-  const fields: { label: string; key: keyof PricingData; prefix?: string }[] = [
-    { label: 'Price', key: 'currentPrice', prefix: '$' },
-    { label: 'Volume', key: 'currentVolume' },
-    { label: 'Elasticity', key: 'elasticity' },
-    { label: 'COGS', key: 'costPerUnit', prefix: '$' },
+  const fields: { label: string; key: keyof PricingData; prefix?: string; tip: string }[] = [
+    { label: 'Price', key: 'currentPrice', prefix: '$', tip: 'Your current selling price per unit' },
+    { label: 'Volume', key: 'currentVolume', tip: 'Number of units sold per month at current price' },
+    { label: 'Elasticity', key: 'elasticity', tip: 'How sensitive demand is to price changes. 1.0 = proportional. 1.5 = 10% price increase causes 15% volume drop' },
+    { label: 'COGS', key: 'costPerUnit', prefix: '$', tip: 'Direct cost to produce/deliver one unit (materials, labor, hosting)' },
   ]
 
   return (
@@ -341,8 +366,8 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
         {/* Base inputs */}
         <div className="flex items-center gap-5 mb-4">
           {fields.map((f) => (
-            <div key={f.key} className="flex items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{f.label}</span>
+            <div key={f.key} className="flex items-center gap-1.5" title={f.tip}>
+              <span className="text-[10px] uppercase tracking-widest cursor-help" style={{ color: 'var(--text-muted)' }}>{f.label}</span>
               <div className="relative">
                 {f.prefix && <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>{f.prefix}</span>}
                 <input
@@ -381,14 +406,14 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
                     <button
                       key={v.id}
                       onClick={() => addVariable(v)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--bg-alt)]"
+                      className="w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--bg-alt)]"
                     >
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${v.color}12` }}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `${v.color}12` }}>
                         <v.icon className="w-3.5 h-3.5" style={{ color: v.color }} />
                       </div>
                       <div>
                         <div className="text-xs font-medium" style={{ color: 'var(--text)' }}>{v.name}</div>
-                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{v.description}</div>
+                        <div className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{v.tooltip || v.description}</div>
                       </div>
                     </button>
                   ))}
@@ -421,14 +446,23 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
                     style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
                   >
                     <varDef.icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: varDef.color }} />
-                    <span className="text-[11px] font-medium w-40 flex-shrink-0" style={{ color: 'var(--text)' }}>
-                      {varDef.name}
-                    </span>
+                    <div className="flex items-center gap-1 w-44 flex-shrink-0 group/tip relative">
+                      <span className="text-[11px] font-medium" style={{ color: 'var(--text)' }}>
+                        {varDef.name}
+                      </span>
+                      <Info className="w-3 h-3 opacity-0 group-hover/tip:opacity-40 transition-opacity cursor-help" style={{ color: 'var(--text-muted)' }} />
+                      <div
+                        className="absolute left-0 top-full mt-1 w-64 px-3 py-2 rounded-lg text-[10px] leading-relaxed hidden group-hover/tip:block z-30 pointer-events-none"
+                        style={{ background: '#1A1A1A', color: '#ddd', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+                      >
+                        {varDef.tooltip}
+                      </div>
+                    </div>
 
                     <div className="flex items-center gap-3 ml-auto">
                       {varDef.fields.map((field) => (
-                        <div key={field.key} className="flex items-center gap-1">
-                          <span className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                        <div key={field.key} className="flex items-center gap-1" title={field.tip}>
+                          <span className="text-[9px] uppercase tracking-wider cursor-help" style={{ color: 'var(--text-muted)' }}>
                             {field.label}
                           </span>
                           <input
