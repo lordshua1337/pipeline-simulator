@@ -297,25 +297,37 @@ export default function FlowBuilderPage() {
           handleMoveNode(nodeId, newPos)
 
           // BUMP-CONNECT: check if this node landed near another node's port
-          const NODE_W = 200
-          const NODE_H = 90
+          const BW = 200
           const BUMP_THRESHOLD = 50
 
+          function nodeH(n: FlowNode): number {
+            let mc = 1
+            if (n.metrics.trafficVolume > 0) mc++
+            if (n.metrics.revenuePerSale > 0) mc++
+            if (n.metrics.costPerClick > 0) mc++
+            if (n.metrics.costPerLead > 0) mc++
+            if (n.metrics.timeInStageHours > 0) mc++
+            if (n.metrics.dropOffRate > 0) mc++
+            return 36 + (n.config?.variant ? 14 : 0) + mc * 14 + 12
+          }
+
+          const dH = nodeH(node)
           const draggedPorts = [
-            { x: newPos.x + NODE_W / 2, y: newPos.y, side: 'top' },
-            { x: newPos.x + NODE_W, y: newPos.y + NODE_H / 2, side: 'right' },
-            { x: newPos.x + NODE_W / 2, y: newPos.y + NODE_H, side: 'bottom' },
-            { x: newPos.x, y: newPos.y + NODE_H / 2, side: 'left' },
+            { x: newPos.x + BW / 2, y: newPos.y, side: 'top' },
+            { x: newPos.x + BW, y: newPos.y + dH / 2, side: 'right' },
+            { x: newPos.x + BW / 2, y: newPos.y + dH, side: 'bottom' },
+            { x: newPos.x, y: newPos.y + dH / 2, side: 'left' },
           ]
 
           for (const other of flow.nodes) {
             if (other.id === nodeId) continue
+            const oH = nodeH(other)
 
             const otherPorts = [
-              { x: other.position.x + NODE_W / 2, y: other.position.y },
-              { x: other.position.x + NODE_W, y: other.position.y + NODE_H / 2 },
-              { x: other.position.x + NODE_W / 2, y: other.position.y + NODE_H },
-              { x: other.position.x, y: other.position.y + NODE_H / 2 },
+              { x: other.position.x + BW / 2, y: other.position.y },
+              { x: other.position.x + BW, y: other.position.y + oH / 2 },
+              { x: other.position.x + BW / 2, y: other.position.y + oH },
+              { x: other.position.x, y: other.position.y + oH / 2 },
             ]
 
             for (const dp of draggedPorts) {
