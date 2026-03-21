@@ -335,36 +335,24 @@ export default function FlowBuilderPage() {
 
           // BUMP-CONNECT: check if this node landed near another node's port
           const BW = 200
+          const BH = 100
           const BUMP_THRESHOLD = 50
 
-          function nodeH(n: FlowNode): number {
-            let mc = 1
-            if (n.metrics.trafficVolume > 0) mc++
-            if (n.metrics.revenuePerSale > 0) mc++
-            if (n.metrics.costPerClick > 0) mc++
-            if (n.metrics.costPerLead > 0) mc++
-            if (n.metrics.timeInStageHours > 0) mc++
-            if (n.metrics.dropOffRate > 0) mc++
-            return 36 + (n.config?.variant ? 14 : 0) + mc * 14 + 12
-          }
-
-          const dH = nodeH(node)
           const draggedPorts = [
             { x: newPos.x + BW / 2, y: newPos.y, side: 'top' },
-            { x: newPos.x + BW, y: newPos.y + dH / 2, side: 'right' },
-            { x: newPos.x + BW / 2, y: newPos.y + dH, side: 'bottom' },
-            { x: newPos.x, y: newPos.y + dH / 2, side: 'left' },
+            { x: newPos.x + BW, y: newPos.y + BH / 2, side: 'right' },
+            { x: newPos.x + BW / 2, y: newPos.y + BH, side: 'bottom' },
+            { x: newPos.x, y: newPos.y + BH / 2, side: 'left' },
           ]
 
           for (const other of flow.nodes) {
             if (other.id === nodeId) continue
-            const oH = nodeH(other)
 
             const otherPorts = [
               { x: other.position.x + BW / 2, y: other.position.y },
-              { x: other.position.x + BW, y: other.position.y + oH / 2 },
-              { x: other.position.x + BW / 2, y: other.position.y + oH },
-              { x: other.position.x, y: other.position.y + oH / 2 },
+              { x: other.position.x + BW, y: other.position.y + BH / 2 },
+              { x: other.position.x + BW / 2, y: other.position.y + BH },
+              { x: other.position.x, y: other.position.y + BH / 2 },
             ]
 
             for (const dp of draggedPorts) {

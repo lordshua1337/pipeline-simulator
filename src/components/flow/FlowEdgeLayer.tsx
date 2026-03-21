@@ -2,35 +2,20 @@
 
 import type { FlowNode, FlowEdge } from '@/lib/flow-types'
 
-// Match BaseFlowNode dimensions
 const NODE_W = 200
-
-// Estimate node height based on metric count (header ~36px + metrics ~14px each + padding 12px)
-function estimateNodeHeight(node: FlowNode): number {
-  let metricCount = 1 // conv rate always shown
-  if (node.metrics.trafficVolume > 0) metricCount++
-  if (node.metrics.revenuePerSale > 0) metricCount++
-  if (node.metrics.costPerClick > 0) metricCount++
-  if (node.metrics.costPerLead > 0) metricCount++
-  if (node.metrics.timeInStageHours > 0) metricCount++
-  if (node.metrics.dropOffRate > 0) metricCount++
-  // header(36) + variant line maybe(14) + metrics(14 each) + padding(12)
-  const hasVariant = !!node.config?.variant
-  return 36 + (hasVariant ? 14 : 0) + metricCount * 14 + 12
-}
+const NODE_H = 100 // approximate -- close enough for edge routing
 
 type Side = 'top' | 'right' | 'bottom' | 'left'
 
 interface Port { x: number; y: number; side: Side }
 
 function getNodePorts(node: FlowNode): Record<Side, Port> {
-  const h = estimateNodeHeight(node)
   const cx = node.position.x + NODE_W / 2
-  const cy = node.position.y + h / 2
+  const cy = node.position.y + NODE_H / 2
   return {
     top:    { x: cx, y: node.position.y, side: 'top' },
     right:  { x: node.position.x + NODE_W, y: cy, side: 'right' },
-    bottom: { x: cx, y: node.position.y + h, side: 'bottom' },
+    bottom: { x: cx, y: node.position.y + NODE_H, side: 'bottom' },
     left:   { x: node.position.x, y: cy, side: 'left' },
   }
 }
@@ -111,8 +96,8 @@ export function FlowEdgeLayer({
           <g key={edge.id} className="group/edge">
             <path d={path} fill="none" stroke="transparent" strokeWidth={16}
               className="pointer-events-auto cursor-pointer" onClick={() => onSelectEdge(edge.id)} />
-            <path d={path} fill="none" stroke={isSelected ? '#3B82F6' : '#CBD5E1'}
-              strokeWidth={isSelected ? 2.5 : 1.5} className="transition-colors" />
+            <path d={path} fill="none" stroke={isSelected ? '#3B82F6' : '#94A3B8'}
+              strokeWidth={isSelected ? 3 : 2} className="transition-colors" />
             <polygon points={arrowPoints(to)} fill={isSelected ? '#3B82F6' : '#94A3B8'} />
             {/* Insert node button at midpoint */}
             {onInsertNode && (
