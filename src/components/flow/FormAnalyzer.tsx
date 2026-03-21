@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { Upload, Plus, X, AlertTriangle, TrendingDown, ArrowDown, Lightbulb } from 'lucide-react'
+import { Upload, Plus, X, AlertTriangle, TrendingDown, Lightbulb, Zap, Trash2, Merge, ArrowRightLeft, Eye, MousePointerClick, Shield, MessageSquare } from 'lucide-react'
 
 interface FormStep {
   readonly id: string
@@ -40,6 +40,7 @@ function parseCSV(text: string): FormStep[] {
 export function FormAnalyzer() {
   const [steps, setSteps] = useState<readonly FormStep[]>(DEFAULT_STEPS)
   const [fileName, setFileName] = useState('')
+  const [showOptimize, setShowOptimize] = useState(false)
 
   const analysis = useMemo(() => {
     return steps.map((step, i) => {
@@ -138,10 +139,21 @@ export function FormAnalyzer() {
           </label>
           <button
             onClick={addStep}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Step
+          </button>
+          <button
+            onClick={() => setShowOptimize(!showOptimize)}
+            className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              showOptimize
+                ? 'bg-blue-600 text-white'
+                : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Optimize
           </button>
         </div>
       </div>
@@ -285,49 +297,222 @@ export function FormAnalyzer() {
         </table>
       </div>
 
-      {/* Optimization suggestions */}
-      <div className="border border-gray-200 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Lightbulb className="w-4 h-4 text-amber-500" />
-          <h3 className="text-sm font-semibold text-gray-900">Optimization Opportunities</h3>
-        </div>
-        <div className="space-y-3">
-          {analysis
-            .filter((s) => s.dropOffPct > 15)
-            .sort((a, b) => b.dropOff - a.dropOff)
-            .map((step) => {
-              // What if we cut drop-off in half?
-              const currentLost = step.dropOff
-              const ifHalved = Math.round(currentLost / 2)
-              const additionalCompletions = Math.round(
-                ifHalved * (totalCompletions / Math.max(step.submissions, 1))
-              )
+      {/* Optimization panel */}
+      {showOptimize && (() => {
+        const badSteps = analysis.filter((s) => s.dropOffPct > 10).sort((a, b) => b.dropOff - a.dropOff)
+        const totalLost = totalEntries - totalCompletions
+        const stepCount = steps.length
 
-              return (
-                <div key={step.id} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
-                  <TrendingDown className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">
-                      "{step.name}" loses {step.dropOff.toLocaleString()} people ({step.dropOffPct.toFixed(0)}%)
+        // Simulate removing each bad step and calculate impact
+        const removalImpact = badSteps.map((step) => {
+          const idx = analysis.indexOf(step)
+          // Calculate what completion would be without this step
+          let simulated = totalEntries
+          for (let i = 1; i < analysis.length; i++) {
+            if (analysis[i].id === step.id) continue
+            const prevSubs = i > 0 ? analysis[i - 1].submissions : totalEntries
+            const rate = prevSubs > 0 ? analysis[i].submissions / prevSubs : 1
+            simulated = Math.round(simulated * rate)
+          }
+          return { ...step, projectedCompletions: simulated, gain: simulated - totalCompletions }
+        })
+
+        // Categorize steps by position for smart recommendations
+        const isEarly = (idx: number) => idx <= Math.ceil(stepCount * 0.3)
+        const isMid = (idx: number) => idx > Math.ceil(stepCount * 0.3) && idx <= Math.ceil(stepCount * 0.7)
+        const isLate = (idx: number) => idx > Math.ceil(stepCount * 0.7)
+
+        // Generate specific tactical recommendations
+        type Rec = { icon: typeof Zap; title: string; detail: string; impact: string; priority: 'critical' | 'high' | 'medium'; impactNum: number }
+        const recommendations: Rec[] = []
+
+        for (const step of badSteps) {
+          const idx = analysis.indexOf(step)
+          const impact = removalImpact.find((r) => r.id === step.id)
+          const gainStr = `+${(impact?.gain || 0).toLocaleString()} completions`
+          const pctGain = totalCompletions > 0 ? (((impact?.gain || 0) / totalCompletions) * 100).toFixed(0) : '0'
+
+          // First step with huge drop-off = friction before they even start
+          if (idx === 1 && step.dropOffPct > 40) {
+            recommendations.push({
+              icon: Eye,
+              title: `"${step.name}" kills ${step.dropOffPct.toFixed(0)}% before they even start`,
+              detail: `Your very first form field loses ${step.dropOff.toLocaleString()} people. This is the highest-leverage fix on the entire form. Try: show the value prop ABOVE the first field, use a single-field start (just email), or use a progress bar that starts at 20% to create momentum.`,
+              impact: `${gainStr} (+${pctGain}% completions)`,
+              priority: 'critical',
+              impactNum: impact?.gain || 0,
+            })
+          }
+
+          // Phone number pattern (common killer)
+          if (step.name.toLowerCase().includes('phone') && step.dropOffPct > 20) {
+            recommendations.push({
+              icon: Shield,
+              title: `Phone number request drops ${step.dropOffPct.toFixed(0)}% of leads`,
+              detail: `Phone fields are the #1 form killer across all industries. Three options: (1) Make it optional with "(optional)" label -- this alone recovers 30-50% of drop-offs. (2) Move it to a follow-up email after submission. (3) Add "We'll only call if you request it" trust copy directly under the field.`,
+              impact: `${gainStr} (+${pctGain}% completions)`,
+              priority: step.dropOffPct > 35 ? 'critical' : 'high',
+              impactNum: impact?.gain || 0,
+            })
+          }
+
+          // Budget/price/money pattern
+          if ((step.name.toLowerCase().includes('budget') || step.name.toLowerCase().includes('price') || step.name.toLowerCase().includes('revenue')) && step.dropOffPct > 15) {
+            recommendations.push({
+              icon: ArrowRightLeft,
+              title: `"${step.name}" scares off ${step.dropOff.toLocaleString()} people`,
+              detail: `Money questions trigger commitment anxiety. Fix: use ranges instead of exact numbers (dropdown with "$1K-5K", "$5K-10K" etc), or reframe as "What's your growth goal?" instead of "What's your budget?". Moving this to the last step before submit also helps -- by then they're invested.`,
+              impact: `${gainStr} (+${pctGain}% completions)`,
+              priority: 'high',
+              impactNum: impact?.gain || 0,
+            })
+          }
+
+          // Company/business info pattern
+          if ((step.name.toLowerCase().includes('company') || step.name.toLowerCase().includes('business') || step.name.toLowerCase().includes('organization')) && step.dropOffPct > 15) {
+            recommendations.push({
+              icon: Merge,
+              title: `Combine "${step.name}" with the name/email step`,
+              detail: `Company info feels like a separate form. Merge it into the first step as a single row: [Name] [Email] [Company]. Three fields on one line feels like one step, not three. This eliminates the page transition that causes ${step.dropOff.toLocaleString()} drop-offs.`,
+              impact: `${gainStr} (+${pctGain}% completions)`,
+              priority: 'high',
+              impactNum: impact?.gain || 0,
+            })
+          }
+
+          // Late-stage drop-off (they were almost done)
+          if (isLate(idx) && step.dropOffPct > 15) {
+            recommendations.push({
+              icon: MousePointerClick,
+              title: `${step.dropOff.toLocaleString()} people quit at "${step.name}" -- they were ${((1 - idx / stepCount) * 100).toFixed(0)}% done`,
+              detail: `Late-stage abandonment is the most expensive kind -- these leads were highly engaged. Add a progress indicator showing "Almost done! Step ${idx} of ${stepCount}". Consider auto-saving their data so they can return later. If this step has a text area, add a character minimum indicator instead of leaving it open-ended.`,
+              impact: `${gainStr} (+${pctGain}% completions)`,
+              priority: 'critical',
+              impactNum: impact?.gain || 0,
+            })
+          }
+
+          // Multi-step form with too many steps
+          if (idx === 1 && stepCount > 5) {
+            recommendations.push({
+              icon: Merge,
+              title: `${stepCount} steps is a lot -- consider a 2-3 step multi-page form`,
+              detail: `Forms with 5+ steps lose 20-40% more than 2-3 step forms. Group related fields together: Personal info (name + email + phone) on step 1, Project details on step 2, Submit on step 3. Each "page" can have multiple fields without the psychological weight of ${stepCount} separate steps.`,
+              impact: `Potential 15-30% lift in overall completion`,
+              priority: 'medium',
+              impactNum: 0,
+            })
+          }
+
+          // Generic high drop-off that didn't match specific patterns
+          if (step.dropOffPct > 25 && !recommendations.some((r) => r.title.includes(step.name))) {
+            recommendations.push({
+              icon: MessageSquare,
+              title: `"${step.name}" has a ${step.dropOffPct.toFixed(0)}% drop-off (${step.dropOff.toLocaleString()} lost)`,
+              detail: `This field is losing significant traffic. Evaluate: Is this information actually needed at this stage, or could you collect it later? Can it be a dropdown/select instead of free text? Can you pre-fill it from earlier answers? Adding helper text ("Why we ask this") reduces abandonment by 10-20%.`,
+              impact: `${gainStr} (+${pctGain}% completions)`,
+              priority: step.dropOffPct > 40 ? 'critical' : 'high',
+              impactNum: impact?.gain || 0,
+            })
+          }
+        }
+
+        // Sort by impact
+        const priorityOrder = { critical: 0, high: 1, medium: 2 }
+        recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority] || b.impactNum - a.impactNum)
+
+        // Overall form health
+        const formGrade = overallConversion > 30 ? 'A' : overallConversion > 20 ? 'B' : overallConversion > 10 ? 'C' : overallConversion > 5 ? 'D' : 'F'
+        const gradeColor = { A: 'text-green-600 bg-green-50', B: 'text-blue-600 bg-blue-50', C: 'text-amber-600 bg-amber-50', D: 'text-orange-600 bg-orange-50', F: 'text-red-600 bg-red-50' }[formGrade]
+
+        return (
+          <div className="border border-blue-200 rounded-xl overflow-hidden bg-blue-50/20">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 bg-white border-b border-blue-100">
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-blue-600" />
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Optimization Report</h3>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    {totalLost.toLocaleString()} people lost across {badSteps.length} problem step{badSteps.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+              <div className={`px-3 py-1.5 rounded-lg text-sm font-bold ${gradeColor}`}>
+                Grade: {formGrade}
+              </div>
+            </div>
+
+            {/* Quick stats */}
+            <div className="grid grid-cols-3 gap-3 px-5 py-4 border-b border-blue-100 bg-white/50">
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Total Lost</div>
+                <div className="text-lg font-bold text-red-500">{totalLost.toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">If Top Fix Applied</div>
+                <div className="text-lg font-bold text-green-600">
+                  +{(removalImpact[0]?.gain || 0).toLocaleString()} leads
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Projected Rate</div>
+                <div className="text-lg font-bold text-blue-600">
+                  {totalEntries > 0 ? (((totalCompletions + (removalImpact[0]?.gain || 0)) / totalEntries) * 100).toFixed(1) : 0}%
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            <div className="p-5 space-y-3">
+              {recommendations.map((rec, i) => (
+                <div
+                  key={i}
+                  className={`rounded-xl p-4 border ${
+                    rec.priority === 'critical'
+                      ? 'bg-red-50/50 border-red-200'
+                      : rec.priority === 'high'
+                      ? 'bg-amber-50/50 border-amber-200'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      rec.priority === 'critical' ? 'bg-red-100' : rec.priority === 'high' ? 'bg-amber-100' : 'bg-gray-100'
+                    }`}>
+                      <rec.icon className={`w-4 h-4 ${
+                        rec.priority === 'critical' ? 'text-red-600' : rec.priority === 'high' ? 'text-amber-600' : 'text-gray-600'
+                      }`} />
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      If you cut this drop-off in half, you'd gain ~{additionalCompletions.toLocaleString()} more completions.
-                      {step.dropOffPct > 40 && ' Consider making this step optional or combining it with another.'}
-                      {step.dropOffPct > 25 && step.dropOffPct <= 40 && ' Try simplifying the fields or adding progress indicators.'}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                          rec.priority === 'critical' ? 'bg-red-100 text-red-700'
+                            : rec.priority === 'high' ? 'bg-amber-100 text-amber-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {rec.priority}
+                        </span>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900 mb-1">{rec.title}</div>
+                      <div className="text-xs text-gray-600 leading-relaxed">{rec.detail}</div>
+                      <div className="mt-2 text-xs font-mono font-medium text-green-600">{rec.impact}</div>
                     </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-xs font-mono font-medium text-green-600">+{additionalCompletions}</div>
-                    <div className="text-[10px] text-gray-400">potential</div>
                   </div>
                 </div>
-              )
-            })}
-          {analysis.filter((s) => s.dropOffPct > 15).length === 0 && (
-            <p className="text-sm text-gray-500">No major drop-off points detected. Your form is performing well.</p>
-          )}
-        </div>
-      </div>
+              ))}
+
+              {recommendations.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="text-2xl mb-2">&#10003;</div>
+                  <p className="text-sm font-medium text-gray-900">Your form is performing well</p>
+                  <p className="text-xs text-gray-500 mt-1">No major optimization opportunities detected at current drop-off rates.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
