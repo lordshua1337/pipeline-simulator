@@ -173,21 +173,6 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
     },
   },
   {
-    id: 'ads',
-    name: 'Ad Spend',
-    icon: Megaphone,
-    color: '#D97706',
-    description: 'Monthly ad spend that drives a portion of volume',
-    fields: [
-      { key: 'monthlyAdSpend', label: 'Monthly Spend', defaultValue: 5000, suffix: '$', step: '500' },
-      { key: 'adDrivenPct', label: 'Ad-Driven Sales', defaultValue: 40, suffix: '%', step: '5' },
-    ],
-    effect: (row, vals) => {
-      const adCost = vals.monthlyAdSpend
-      return { ...row, cost: row.cost + adCost, profit: row.profit - adCost, margin: row.revenue > 0 ? ((row.profit - adCost) / row.revenue) * 100 : 0 }
-    },
-  },
-  {
     id: 'scaling',
     name: 'Scaling Cost Curve',
     icon: Scale,
