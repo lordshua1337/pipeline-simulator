@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { Upload, Plus, X, AlertTriangle, TrendingDown, Lightbulb, Zap, Trash2, Merge, ArrowRightLeft, Eye, MousePointerClick, Shield, MessageSquare } from 'lucide-react'
+import { Upload, Plus, X, Zap, Lightbulb, TrendingDown, Eye, MousePointerClick, Shield, MessageSquare, ArrowRightLeft, Merge, Info } from 'lucide-react'
 
 interface FormStep {
   readonly id: string
@@ -26,14 +26,9 @@ const DEFAULT_STEPS: readonly FormStep[] = [
 function parseCSV(text: string): FormStep[] {
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
-
   return lines.slice(1).map((line) => {
     const cells = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''))
-    return {
-      id: genId(),
-      name: cells[0] || 'Step',
-      submissions: parseInt(cells[1], 10) || 0,
-    }
+    return { id: genId(), name: cells[0] || 'Step', submissions: parseInt(cells[1], 10) || 0 }
   })
 }
 
@@ -57,7 +52,6 @@ export function FormAnalyzer() {
   const overallConversion = totalEntries > 0 ? (totalCompletions / totalEntries) * 100 : 0
   const maxSubmissions = Math.max(...steps.map((s) => s.submissions), 1)
 
-  // Find worst drop-off step
   const worstStep = analysis.reduce((worst, s) =>
     s.dropOffPct > worst.dropOffPct ? s : worst
   , analysis[0])
@@ -68,42 +62,22 @@ export function FormAnalyzer() {
 
   const addStep = useCallback(() => {
     const last = steps[steps.length - 1]
-    setSteps((prev) => [
-      ...prev,
-      { id: genId(), name: 'New Step', submissions: Math.round((last?.submissions || 100) * 0.7) },
-    ])
+    setSteps((prev) => [...prev, { id: genId(), name: 'New Step', submissions: Math.round((last?.submissions || 100) * 0.7) }])
   }, [steps])
 
   const removeStep = useCallback((id: string) => {
     setSteps((prev) => {
       if (prev.length <= 1) return prev
-
       const idx = prev.findIndex((s) => s.id === id)
       if (idx === -1) return prev
-
-      // When removing a step, the people who dropped off there now flow through.
-      // Recalculate: each remaining step keeps its own conversion rate relative
-      // to the step before it, but the removed step's drop-off is eliminated.
-      const removed = prev[idx]
       const without = prev.filter((s) => s.id !== id)
-
-      // Recalculate submissions from the removal point forward.
-      // The step after the removed one now receives what the step BEFORE
-      // the removed one had, multiplied by its own pass-through rate.
       return without.map((step, i) => {
         if (i <= idx - 1 || idx === 0 && i === 0) return step
-
-        // This step originally received X from the removed step (or the step before it).
-        // Now it receives from the step before it in the new array.
         const prevInOriginal = prev[prev.indexOf(step) - 1]
         const prevInNew = without[i - 1]
-
         if (!prevInOriginal || !prevInNew) return step
-
-        // Keep this step's original conversion rate (submissions / what it received)
         const originalReceived = prevInOriginal.submissions
         const ownConvRate = originalReceived > 0 ? step.submissions / originalReceived : 1
-
         return { ...step, submissions: Math.round(prevInNew.submissions * ownConvRate) }
       })
     })
@@ -126,31 +100,36 @@ export function FormAnalyzer() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Form Step Analyzer</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text)' }}>Form Step Analyzer</h2>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
             Enter your form steps and submission counts. See exactly where people drop off.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+          <label
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors"
+            style={{ background: 'var(--bg-alt)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
             <Upload className="w-3.5 h-3.5" />
             {fileName || 'Import CSV'}
             <input type="file" accept=".csv" onChange={handleCSV} className="hidden" />
           </label>
           <button
             onClick={addStep}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+            style={{ background: 'var(--bg-alt)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
           >
             <Plus className="w-3.5 h-3.5" />
             Add Step
           </button>
           <button
             onClick={() => setShowOptimize(!showOptimize)}
-            className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              showOptimize
-                ? 'bg-blue-600 text-white'
-                : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'
-            }`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+            style={{
+              background: showOptimize ? 'var(--accent)' : 'var(--bg-alt)',
+              color: showOptimize ? '#fff' : 'var(--text-secondary)',
+              border: showOptimize ? '1px solid var(--accent)' : '1px solid var(--border)',
+            }}
           >
             <Zap className="w-3.5 h-3.5" />
             Optimize
@@ -158,10 +137,10 @@ export function FormAnalyzer() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="bg-gray-50 rounded-lg px-4 py-3">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Total Started</div>
+      {/* Summary */}
+      <div className="flex items-center gap-8 mb-6">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Total Started</div>
           <input
             type="number"
             value={totalEntries}
@@ -171,11 +150,12 @@ export function FormAnalyzer() {
               const ratio = newTotal / totalEntries
               setSteps((prev) => prev.map((s) => ({ ...s, submissions: Math.round(s.submissions * ratio) })))
             }}
-            className="text-lg font-bold text-gray-900 bg-transparent outline-none w-full hover:bg-gray-100 focus:bg-gray-100 rounded px-1 -mx-1"
+            className="text-2xl font-bold bg-transparent outline-none w-28 sim-inline-input"
+            style={{ fontFamily: "'SF Mono', monospace", color: 'var(--text)' }}
           />
         </div>
-        <div className="bg-gray-50 rounded-lg px-4 py-3">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Completed</div>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Completed</div>
           <input
             type="number"
             value={totalCompletions}
@@ -183,64 +163,70 @@ export function FormAnalyzer() {
               const newComp = parseInt(e.target.value) || 0
               setSteps((prev) => prev.map((s, i) => i === prev.length - 1 ? { ...s, submissions: newComp } : s))
             }}
-            className="text-lg font-bold text-green-600 bg-transparent outline-none w-full hover:bg-gray-100 focus:bg-gray-100 rounded px-1 -mx-1"
+            className="text-2xl font-bold bg-transparent outline-none w-28 sim-inline-input"
+            style={{ fontFamily: "'SF Mono', monospace", color: 'var(--accent)' }}
           />
         </div>
-        <div className="bg-gray-50 rounded-lg px-4 py-3">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Completion Rate</div>
-          <div className={`text-lg font-bold ${overallConversion > 20 ? 'text-green-600' : 'text-red-500'}`}>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Completion Rate</div>
+          <div className="text-2xl font-bold" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--text-secondary)' }}>
             {overallConversion.toFixed(1)}%
           </div>
         </div>
-        <div className="bg-gray-50 rounded-lg px-4 py-3">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Biggest Drop-off</div>
-          <div className="text-lg font-bold text-red-500">{worstStep?.name || '--'}</div>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Worst Drop-off</div>
+          <div className="text-2xl font-bold" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--text)' }}>
+            {worstStep?.name || '--'}
+          </div>
         </div>
       </div>
 
-      {/* Editable table */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden mb-6">
+      {/* Table */}
+      <div className="sim-card mb-6" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5 w-8">#</th>
-              <th className="text-left text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5">Form Step / Question</th>
-              <th className="text-right text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5 w-32">Submissions</th>
-              <th className="text-right text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5 w-28">Drop-offs</th>
-              <th className="text-right text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5 w-28">Drop-off %</th>
-              <th className="text-right text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5 w-28">% of Total</th>
-              <th className="text-center text-[10px] text-gray-500 uppercase tracking-wider px-4 py-2.5 w-32">Funnel</th>
-              <th className="px-2 py-2.5 w-8" />
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <th className="text-left text-[10px] uppercase tracking-widest font-medium px-4 py-3 w-8" style={{ color: 'var(--text-muted)' }}>#</th>
+              <th className="text-left text-[10px] uppercase tracking-widest font-medium px-4 py-3" style={{ color: 'var(--text-muted)' }}>Step</th>
+              <th className="text-right text-[10px] uppercase tracking-widest font-medium px-4 py-3 w-28" style={{ color: 'var(--text-muted)' }}>Submissions</th>
+              <th className="text-right text-[10px] uppercase tracking-widest font-medium px-4 py-3 w-24" style={{ color: 'var(--text-muted)' }}>Drop-offs</th>
+              <th className="text-right text-[10px] uppercase tracking-widest font-medium px-4 py-3 w-24" style={{ color: 'var(--text-muted)' }}>Drop %</th>
+              <th className="text-right text-[10px] uppercase tracking-widest font-medium px-4 py-3 w-24" style={{ color: 'var(--text-muted)' }}>of Total</th>
+              <th className="text-center text-[10px] uppercase tracking-widest font-medium px-4 py-3 w-32" style={{ color: 'var(--text-muted)' }}>Funnel</th>
+              <th className="px-2 py-3 w-8" />
             </tr>
           </thead>
-          <tbody>
+          <tbody style={{ fontFamily: "'SF Mono', monospace" }}>
             {analysis.map((row, i) => {
               const barWidth = maxSubmissions > 0 ? (row.submissions / maxSubmissions) * 100 : 0
-              const isBad = row.dropOffPct > 30
-              const isWorst = row.id === worstStep?.id && i > 0
 
               return (
                 <tr
                   key={row.id}
-                  className={`border-b border-gray-100 last:border-0 ${isWorst ? 'bg-red-50/50' : 'hover:bg-gray-50/50'}`}
+                  style={{ borderBottom: '1px solid var(--border)' }}
+                  className="transition-colors"
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td className="px-4 py-2 text-xs text-gray-400 font-mono">{i + 1}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
+                  <td className="px-4 py-2.5">
                     <input
                       value={row.name}
                       onChange={(e) => updateStep(row.id, 'name', e.target.value)}
-                      className="text-sm text-gray-900 bg-transparent outline-none w-full hover:bg-gray-50 focus:bg-gray-50 rounded px-1 -mx-1 py-0.5"
+                      className="text-xs bg-transparent outline-none w-full sim-inline-input"
+                      style={{ color: 'var(--text)', fontFamily: '-apple-system, sans-serif' }}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2.5 text-right">
                     <input
                       type="number"
                       value={row.submissions}
                       onChange={(e) => updateStep(row.id, 'submissions', parseInt(e.target.value) || 0)}
-                      className="text-sm font-mono text-gray-900 bg-transparent outline-none w-full text-right hover:bg-gray-50 focus:bg-gray-50 rounded px-1 py-0.5"
+                      className="text-xs bg-transparent outline-none w-full text-right sim-inline-input"
+                      style={{ color: 'var(--text)' }}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2.5 text-right">
                     {i > 0 ? (
                       <input
                         type="number"
@@ -250,42 +236,38 @@ export function FormAnalyzer() {
                           const prev = steps[i - 1].submissions
                           updateStep(row.id, 'submissions', Math.max(0, prev - newDropOff))
                         }}
-                        className="text-sm font-mono text-red-500 bg-transparent outline-none w-full text-right hover:bg-gray-50 focus:bg-gray-50 rounded px-1 py-0.5"
+                        className="text-xs bg-transparent outline-none w-full text-right sim-inline-input"
+                        style={{ color: 'var(--text-secondary)' }}
                       />
                     ) : (
-                      <span className="text-sm font-mono text-gray-300">--</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>--</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2.5 text-right">
                     {i > 0 ? (
-                      <div className="flex items-center justify-end gap-1">
-                        {isBad && <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                        <span className={`text-sm font-mono font-medium ${isBad ? 'text-red-500' : 'text-gray-600'}`}>
-                          {row.dropOffPct.toFixed(1)}%
-                        </span>
-                      </div>
+                      <span className="text-xs" style={{ color: row.dropOffPct > 30 ? 'var(--text)' : 'var(--text-secondary)' }}>
+                        {row.dropOffPct.toFixed(1)}%
+                      </span>
                     ) : (
-                      <span className="text-sm font-mono text-gray-300">--</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>--</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    <span className="text-sm font-mono text-gray-500">{row.pctOfTotal.toFixed(1)}%</span>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{row.pctOfTotal.toFixed(1)}%</span>
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                  <td className="px-4 py-2.5">
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${barWidth}%`,
-                          backgroundColor: row.dropOffPct > 40 ? '#EF4444' : row.dropOffPct > 20 ? '#F59E0B' : '#3B82F6',
-                        }}
+                        style={{ width: `${barWidth}%`, background: 'var(--accent)' }}
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-2">
+                  <td className="px-2 py-2.5">
                     <button
                       onClick={() => removeStep(row.id)}
-                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                      className="w-5 h-5 flex items-center justify-center rounded opacity-30 hover:opacity-100 transition-opacity"
+                      style={{ color: 'var(--text-muted)' }}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -301,12 +283,8 @@ export function FormAnalyzer() {
       {showOptimize && (() => {
         const badSteps = analysis.filter((s) => s.dropOffPct > 10).sort((a, b) => b.dropOff - a.dropOff)
         const totalLost = totalEntries - totalCompletions
-        const stepCount = steps.length
 
-        // Simulate removing each bad step and calculate impact
         const removalImpact = badSteps.map((step) => {
-          const idx = analysis.indexOf(step)
-          // Calculate what completion would be without this step
           let simulated = totalEntries
           for (let i = 1; i < analysis.length; i++) {
             if (analysis[i].id === step.id) continue
@@ -317,196 +295,143 @@ export function FormAnalyzer() {
           return { ...step, projectedCompletions: simulated, gain: simulated - totalCompletions }
         })
 
-        // Categorize steps by position for smart recommendations
+        const stepCount = steps.length
         const isEarly = (idx: number) => idx <= Math.ceil(stepCount * 0.3)
-        const isMid = (idx: number) => idx > Math.ceil(stepCount * 0.3) && idx <= Math.ceil(stepCount * 0.7)
         const isLate = (idx: number) => idx > Math.ceil(stepCount * 0.7)
 
-        // Generate specific tactical recommendations
-        type Rec = { icon: typeof Zap; title: string; detail: string; impact: string; priority: 'critical' | 'high' | 'medium'; impactNum: number }
+        type Rec = { icon: typeof Zap; title: string; detail: string; impact: string; impactNum: number }
         const recommendations: Rec[] = []
 
         for (const step of badSteps) {
           const idx = analysis.indexOf(step)
           const impact = removalImpact.find((r) => r.id === step.id)
           const gainStr = `+${(impact?.gain || 0).toLocaleString()} completions`
-          const pctGain = totalCompletions > 0 ? (((impact?.gain || 0) / totalCompletions) * 100).toFixed(0) : '0'
 
-          // First step with huge drop-off = friction before they even start
           if (idx === 1 && step.dropOffPct > 40) {
             recommendations.push({
-              icon: Eye,
-              title: `"${step.name}" kills ${step.dropOffPct.toFixed(0)}% before they even start`,
-              detail: `Your very first form field loses ${step.dropOff.toLocaleString()} people. This is the highest-leverage fix on the entire form. Try: show the value prop ABOVE the first field, use a single-field start (just email), or use a progress bar that starts at 20% to create momentum.`,
-              impact: `${gainStr} (+${pctGain}% completions)`,
-              priority: 'critical',
-              impactNum: impact?.gain || 0,
+              icon: Eye, title: `"${step.name}" kills ${step.dropOffPct.toFixed(0)}% before they start`,
+              detail: `First field loses ${step.dropOff.toLocaleString()} people. Show value prop above the field, use single-field start, or add a progress bar starting at 20%.`,
+              impact: gainStr, impactNum: impact?.gain || 0,
             })
           }
 
-          // Phone number pattern (common killer)
           if (step.name.toLowerCase().includes('phone') && step.dropOffPct > 20) {
             recommendations.push({
-              icon: Shield,
-              title: `Phone number request drops ${step.dropOffPct.toFixed(0)}% of leads`,
-              detail: `Phone fields are the #1 form killer across all industries. Three options: (1) Make it optional with "(optional)" label -- this alone recovers 30-50% of drop-offs. (2) Move it to a follow-up email after submission. (3) Add "We'll only call if you request it" trust copy directly under the field.`,
-              impact: `${gainStr} (+${pctGain}% completions)`,
-              priority: step.dropOffPct > 35 ? 'critical' : 'high',
-              impactNum: impact?.gain || 0,
+              icon: Shield, title: `Phone drops ${step.dropOffPct.toFixed(0)}% of leads`,
+              detail: `Make it optional with "(optional)" label, move to follow-up email, or add "We'll only call if you request it" under the field.`,
+              impact: gainStr, impactNum: impact?.gain || 0,
             })
           }
 
-          // Budget/price/money pattern
           if ((step.name.toLowerCase().includes('budget') || step.name.toLowerCase().includes('price') || step.name.toLowerCase().includes('revenue')) && step.dropOffPct > 15) {
             recommendations.push({
-              icon: ArrowRightLeft,
-              title: `"${step.name}" scares off ${step.dropOff.toLocaleString()} people`,
-              detail: `Money questions trigger commitment anxiety. Fix: use ranges instead of exact numbers (dropdown with "$1K-5K", "$5K-10K" etc), or reframe as "What's your growth goal?" instead of "What's your budget?". Moving this to the last step before submit also helps -- by then they're invested.`,
-              impact: `${gainStr} (+${pctGain}% completions)`,
-              priority: 'high',
-              impactNum: impact?.gain || 0,
+              icon: ArrowRightLeft, title: `"${step.name}" scares off ${step.dropOff.toLocaleString()} people`,
+              detail: `Use ranges instead of exact numbers. Reframe as "growth goal" instead of "budget". Move to last step before submit.`,
+              impact: gainStr, impactNum: impact?.gain || 0,
             })
           }
 
-          // Company/business info pattern
-          if ((step.name.toLowerCase().includes('company') || step.name.toLowerCase().includes('business') || step.name.toLowerCase().includes('organization')) && step.dropOffPct > 15) {
+          if ((step.name.toLowerCase().includes('company') || step.name.toLowerCase().includes('business')) && step.dropOffPct > 15) {
             recommendations.push({
-              icon: Merge,
-              title: `Combine "${step.name}" with the name/email step`,
-              detail: `Company info feels like a separate form. Merge it into the first step as a single row: [Name] [Email] [Company]. Three fields on one line feels like one step, not three. This eliminates the page transition that causes ${step.dropOff.toLocaleString()} drop-offs.`,
-              impact: `${gainStr} (+${pctGain}% completions)`,
-              priority: 'high',
-              impactNum: impact?.gain || 0,
+              icon: Merge, title: `Combine "${step.name}" with name/email step`,
+              detail: `Three fields on one line feels like one step. Eliminates the page transition causing ${step.dropOff.toLocaleString()} drop-offs.`,
+              impact: gainStr, impactNum: impact?.gain || 0,
             })
           }
 
-          // Late-stage drop-off (they were almost done)
           if (isLate(idx) && step.dropOffPct > 15) {
             recommendations.push({
-              icon: MousePointerClick,
-              title: `${step.dropOff.toLocaleString()} people quit at "${step.name}" -- they were ${((1 - idx / stepCount) * 100).toFixed(0)}% done`,
-              detail: `Late-stage abandonment is the most expensive kind -- these leads were highly engaged. Add a progress indicator showing "Almost done! Step ${idx} of ${stepCount}". Consider auto-saving their data so they can return later. If this step has a text area, add a character minimum indicator instead of leaving it open-ended.`,
-              impact: `${gainStr} (+${pctGain}% completions)`,
-              priority: 'critical',
-              impactNum: impact?.gain || 0,
+              icon: MousePointerClick, title: `${step.dropOff.toLocaleString()} quit at "${step.name}" -- nearly done`,
+              detail: `Add progress indicator showing "Almost done!". Auto-save data so they can return. Add character minimum instead of open-ended.`,
+              impact: gainStr, impactNum: impact?.gain || 0,
             })
           }
 
-          // Multi-step form with too many steps
-          if (idx === 1 && stepCount > 5) {
+          if (idx === 1 && stepCount > 5 && !recommendations.some((r) => r.title.includes('steps'))) {
             recommendations.push({
-              icon: Merge,
-              title: `${stepCount} steps is a lot -- consider a 2-3 step multi-page form`,
-              detail: `Forms with 5+ steps lose 20-40% more than 2-3 step forms. Group related fields together: Personal info (name + email + phone) on step 1, Project details on step 2, Submit on step 3. Each "page" can have multiple fields without the psychological weight of ${stepCount} separate steps.`,
-              impact: `Potential 15-30% lift in overall completion`,
-              priority: 'medium',
-              impactNum: 0,
+              icon: Merge, title: `${stepCount} steps is a lot`,
+              detail: `Group related fields: Personal info on step 1, project details on step 2, submit on step 3. Fewer pages = less psychological weight.`,
+              impact: 'Potential 15-30% lift', impactNum: 0,
             })
           }
 
-          // Generic high drop-off that didn't match specific patterns
           if (step.dropOffPct > 25 && !recommendations.some((r) => r.title.includes(step.name))) {
             recommendations.push({
-              icon: MessageSquare,
-              title: `"${step.name}" has a ${step.dropOffPct.toFixed(0)}% drop-off (${step.dropOff.toLocaleString()} lost)`,
-              detail: `This field is losing significant traffic. Evaluate: Is this information actually needed at this stage, or could you collect it later? Can it be a dropdown/select instead of free text? Can you pre-fill it from earlier answers? Adding helper text ("Why we ask this") reduces abandonment by 10-20%.`,
-              impact: `${gainStr} (+${pctGain}% completions)`,
-              priority: step.dropOffPct > 40 ? 'critical' : 'high',
-              impactNum: impact?.gain || 0,
+              icon: MessageSquare, title: `"${step.name}" has ${step.dropOffPct.toFixed(0)}% drop-off`,
+              detail: `Is this needed now or could you collect it later? Can it be a dropdown instead of free text? Adding "Why we ask" reduces abandonment 10-20%.`,
+              impact: gainStr, impactNum: impact?.gain || 0,
             })
           }
         }
 
-        // Sort by impact
-        const priorityOrder = { critical: 0, high: 1, medium: 2 }
-        recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority] || b.impactNum - a.impactNum)
+        recommendations.sort((a, b) => b.impactNum - a.impactNum)
 
-        // Overall form health
         const formGrade = overallConversion > 30 ? 'A' : overallConversion > 20 ? 'B' : overallConversion > 10 ? 'C' : overallConversion > 5 ? 'D' : 'F'
-        const gradeColor = { A: 'text-green-600 bg-green-50', B: 'text-blue-600 bg-blue-50', C: 'text-amber-600 bg-amber-50', D: 'text-orange-600 bg-orange-50', F: 'text-red-600 bg-red-50' }[formGrade]
 
         return (
-          <div className="border border-blue-200 rounded-xl overflow-hidden bg-blue-50/20">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 bg-white border-b border-blue-100">
-              <div className="flex items-center gap-3">
-                <Zap className="w-5 h-5 text-blue-600" />
+          <div className="sim-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">Optimization Report</h3>
-                  <p className="text-[10px] text-gray-500 mt-0.5">
-                    {totalLost.toLocaleString()} people lost across {badSteps.length} problem step{badSteps.length !== 1 ? 's' : ''}
-                  </p>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Optimization Report</span>
+                  <span className="text-[10px] ml-2" style={{ color: 'var(--text-muted)' }}>
+                    {totalLost.toLocaleString()} lost across {badSteps.length} problem steps
+                  </span>
                 </div>
               </div>
-              <div className={`px-3 py-1.5 rounded-lg text-sm font-bold ${gradeColor}`}>
-                Grade: {formGrade}
+              <div
+                className="px-2.5 py-1 rounded-md text-xs font-bold"
+                style={{ fontFamily: "'SF Mono', monospace", background: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                {formGrade}
               </div>
             </div>
 
             {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-3 px-5 py-4 border-b border-blue-100 bg-white/50">
+            <div className="flex items-center gap-6 mb-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Total Lost</div>
-                <div className="text-lg font-bold text-red-500">{totalLost.toLocaleString()}</div>
-              </div>
-              <div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">If Top Fix Applied</div>
-                <div className="text-lg font-bold text-green-600">
-                  +{(removalImpact[0]?.gain || 0).toLocaleString()} leads
+                <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Total Lost</div>
+                <div className="text-lg font-bold" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--text)' }}>
+                  {totalLost.toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Projected Rate</div>
-                <div className="text-lg font-bold text-blue-600">
+                <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Top Fix Impact</div>
+                <div className="text-lg font-bold" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--accent)' }}>
+                  +{(removalImpact[0]?.gain || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Projected Rate</div>
+                <div className="text-lg font-bold" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--text-secondary)' }}>
                   {totalEntries > 0 ? (((totalCompletions + (removalImpact[0]?.gain || 0)) / totalEntries) * 100).toFixed(1) : 0}%
                 </div>
               </div>
             </div>
 
             {/* Recommendations */}
-            <div className="p-5 space-y-3">
+            <div className="space-y-2">
               {recommendations.map((rec, i) => (
                 <div
                   key={i}
-                  className={`rounded-xl p-4 border ${
-                    rec.priority === 'critical'
-                      ? 'bg-red-50/50 border-red-200'
-                      : rec.priority === 'high'
-                      ? 'bg-amber-50/50 border-amber-200'
-                      : 'bg-white border-gray-200'
-                  }`}
+                  className="flex items-start gap-3 px-3 py-3 rounded-lg"
+                  style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                      rec.priority === 'critical' ? 'bg-red-100' : rec.priority === 'high' ? 'bg-amber-100' : 'bg-gray-100'
-                    }`}>
-                      <rec.icon className={`w-4 h-4 ${
-                        rec.priority === 'critical' ? 'text-red-600' : rec.priority === 'high' ? 'text-amber-600' : 'text-gray-600'
-                      }`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                          rec.priority === 'critical' ? 'bg-red-100 text-red-700'
-                            : rec.priority === 'high' ? 'bg-amber-100 text-amber-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {rec.priority}
-                        </span>
-                      </div>
-                      <div className="text-sm font-semibold text-gray-900 mb-1">{rec.title}</div>
-                      <div className="text-xs text-gray-600 leading-relaxed">{rec.detail}</div>
-                      <div className="mt-2 text-xs font-mono font-medium text-green-600">{rec.impact}</div>
-                    </div>
+                  <rec.icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium" style={{ color: 'var(--text)' }}>{rec.title}</div>
+                    <div className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{rec.detail}</div>
+                  </div>
+                  <div className="text-[10px] font-medium flex-shrink-0" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--accent)' }}>
+                    {rec.impact}
                   </div>
                 </div>
               ))}
 
               {recommendations.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="text-2xl mb-2">&#10003;</div>
-                  <p className="text-sm font-medium text-gray-900">Your form is performing well</p>
-                  <p className="text-xs text-gray-500 mt-1">No major optimization opportunities detected at current drop-off rates.</p>
+                <div className="text-center py-6">
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No major optimization opportunities at current drop-off rates.</p>
                 </div>
               )}
             </div>

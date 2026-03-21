@@ -27,7 +27,7 @@ interface BaseFlowNodeProps {
   computedTraffic?: number
 }
 
-const PORT_CLASS = 'absolute w-3.5 h-3.5 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 transition-colors z-20 cursor-crosshair'
+const PORT_CLASS = 'absolute w-4 h-4 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 hover:scale-125 transition-all z-30 cursor-crosshair'
 
 export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: BaseFlowNodeProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -60,29 +60,37 @@ export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: Base
       }}
       className="group"
     >
-      {/* 4 connection ports: top, right, bottom, left */}
+      {/* 4 connection ports -- OUTSIDE drag listeners, stop propagation */}
       <div
         className={PORT_CLASS}
-        style={{ top: -7, left: '50%', transform: 'translateX(-50%)' }}
+        style={{ top: -8, left: '50%', transform: 'translateX(-50%)' }}
         data-port="input" data-port-side="top" data-node-id={node.id}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       />
       <div
         className={PORT_CLASS}
-        style={{ right: -7, top: '50%', transform: 'translateY(-50%)' }}
+        style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }}
         data-port="output" data-port-side="right" data-node-id={node.id}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       />
       <div
         className={PORT_CLASS}
-        style={{ bottom: -7, left: '50%', transform: 'translateX(-50%)' }}
+        style={{ bottom: -8, left: '50%', transform: 'translateX(-50%)' }}
         data-port="output" data-port-side="bottom" data-node-id={node.id}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       />
       <div
         className={PORT_CLASS}
-        style={{ left: -7, top: '50%', transform: 'translateY(-50%)' }}
+        style={{ left: -8, top: '50%', transform: 'translateY(-50%)' }}
         data-port="input" data-port-side="left" data-node-id={node.id}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       />
 
-      {/* Node body */}
+      {/* Node body -- drag handle */}
       <div
         {...listeners}
         {...attributes}
