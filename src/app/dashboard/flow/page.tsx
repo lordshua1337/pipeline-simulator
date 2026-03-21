@@ -252,14 +252,61 @@ export default function FlowBuilderPage() {
         const nodeId = data.nodeId as string
         const node = flow.nodes.find((n) => n.id === nodeId)
         if (node) {
-          handleMoveNode(nodeId, {
+          const newPos = {
             x: Math.round(node.position.x + delta.x),
             y: Math.round(node.position.y + delta.y),
-          })
+          }
+          handleMoveNode(nodeId, newPos)
+
+          // BUMP-CONNECT: check if this node landed near another node's port
+          const NODE_W = 200
+          const NODE_H = 90
+          const BUMP_THRESHOLD = 50
+
+          const draggedPorts = [
+            { x: newPos.x + NODE_W / 2, y: newPos.y, side: 'top' },
+            { x: newPos.x + NODE_W, y: newPos.y + NODE_H / 2, side: 'right' },
+            { x: newPos.x + NODE_W / 2, y: newPos.y + NODE_H, side: 'bottom' },
+            { x: newPos.x, y: newPos.y + NODE_H / 2, side: 'left' },
+          ]
+
+          for (const other of flow.nodes) {
+            if (other.id === nodeId) continue
+
+            const otherPorts = [
+              { x: other.position.x + NODE_W / 2, y: other.position.y },
+              { x: other.position.x + NODE_W, y: other.position.y + NODE_H / 2 },
+              { x: other.position.x + NODE_W / 2, y: other.position.y + NODE_H },
+              { x: other.position.x, y: other.position.y + NODE_H / 2 },
+            ]
+
+            for (const dp of draggedPorts) {
+              for (const op of otherPorts) {
+                const dist = Math.hypot(dp.x - op.x, dp.y - op.y)
+                if (dist < BUMP_THRESHOLD) {
+                  // Check no existing edge between these two
+                  const alreadyConnected = flow.edges.some(
+                    (e) => (e.sourceId === nodeId && e.targetId === other.id) ||
+                           (e.sourceId === other.id && e.targetId === nodeId)
+                  )
+                  if (!alreadyConnected) {
+                    // Determine direction: dragged node's right/bottom = source, left/top = target
+                    const isSource = dp.side === 'right' || dp.side === 'bottom'
+                    handleAddEdge({
+                      id: generateFlowId('edge'),
+                      sourceId: isSource ? nodeId : other.id,
+                      targetId: isSource ? other.id : nodeId,
+                    })
+                    return // only one bump-connect per drag
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
-    [flow.nodes, handleAddNode, handleMoveNode]
+    [flow.nodes, flow.edges, handleAddNode, handleMoveNode, handleAddEdge]
   )
 
   const dragOverlayMeta = activeDragType ? NODE_TYPE_META[activeDragType] : null
