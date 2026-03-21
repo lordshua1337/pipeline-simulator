@@ -94,14 +94,23 @@ export default function DashboardPage() {
             Manage and simulate your multi-stage processes.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-all hover:scale-105"
-          style={{ background: 'var(--blue)' }}
-        >
-          <Plus size={16} />
-          New Pipeline
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="/dashboard/flow"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 border text-sm"
+            style={{ borderColor: 'var(--blue)', color: 'var(--blue)' }}
+          >
+            Flow Builder
+          </a>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-all hover:scale-105"
+            style={{ background: 'var(--blue)' }}
+          >
+            <Plus size={16} />
+            New Pipeline
+          </button>
+        </div>
       </div>
 
       {/* Create Modal */}
