@@ -91,7 +91,6 @@ export default function FlowBuilderPage() {
   const [editingName, setEditingName] = useState(false)
   const [activeDragType, setActiveDragType] = useState<FlowNodeType | null>(null)
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
-  const [mouseCanvasPos, setMouseCanvasPos] = useState<{ x: number; y: number } | null>(null)
 
   const selectedNode = useMemo(
     () => flow.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -108,104 +107,7 @@ export default function FlowBuilderPage() {
     return map
   }, [simResult])
 
-  // Smooth connection system: mousedown on port starts, mousemove tracks, mouseup on port finishes
-  const connectingRef = useRef<string | null>(null)
-  const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
-  const rafRef = useRef<number>(0)
-  const canvasElRef = useRef<HTMLElement | null>(null)
-
-  // Track mouse globally for smooth line
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      mousePosRef.current = { x: e.clientX, y: e.clientY }
-    }
-    document.addEventListener('mousemove', onMove)
-    return () => document.removeEventListener('mousemove', onMove)
-  }, [])
-
-  // RAF loop to update connection line smoothly
-  useEffect(() => {
-    if (!connectingFrom) {
-      cancelAnimationFrame(rafRef.current)
-      return
-    }
-
-    const update = () => {
-      // Find the canvas element and compute canvas-space coords
-      const canvas = document.querySelector('[data-flow-canvas]') as HTMLElement | null
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect()
-        const viewportEl = canvas.firstElementChild as HTMLElement | null
-        if (viewportEl) {
-          const transform = viewportEl.style.transform
-          const scaleMatch = transform.match(/scale\(([^)]+)\)/)
-          const translateMatch = transform.match(/translate\(([^p]+)px,\s*([^p]+)px\)/)
-          const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1
-          const tx = translateMatch ? parseFloat(translateMatch[1]) : 0
-          const ty = translateMatch ? parseFloat(translateMatch[2]) : 0
-
-          const canvasX = (mousePosRef.current.x - rect.left - tx) / zoom
-          const canvasY = (mousePosRef.current.y - rect.top - ty) / zoom
-
-          // Update state for the edge layer to render
-          setMouseCanvasPos({ x: canvasX, y: canvasY })
-        }
-      }
-      rafRef.current = requestAnimationFrame(update)
-    }
-    rafRef.current = requestAnimationFrame(update)
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [connectingFrom])
-
-  // Port mousedown = start connection, mouseup on port = finish
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const port = (e.target as HTMLElement).closest('[data-port]') as HTMLElement | null
-      if (!port) return
-      const nodeId = port.dataset.nodeId
-      if (!nodeId) return
-
-      e.preventDefault()
-      e.stopPropagation()
-      setConnectingFrom(nodeId)
-      connectingRef.current = nodeId
-    }
-
-    const onUp = (e: MouseEvent) => {
-      if (!connectingRef.current) return
-
-      const port = (e.target as HTMLElement).closest('[data-port]') as HTMLElement | null
-      if (port) {
-        const targetNodeId = port.dataset.nodeId
-        if (targetNodeId && targetNodeId !== connectingRef.current) {
-          // Create edge
-          setFlow((prev) => {
-            const exists = prev.edges.some(
-              (edge) => (edge.sourceId === connectingRef.current && edge.targetId === targetNodeId) ||
-                        (edge.sourceId === targetNodeId && edge.targetId === connectingRef.current)
-            )
-            if (exists) return prev
-            return {
-              ...prev,
-              edges: [...prev.edges, { id: generateFlowId('edge'), sourceId: connectingRef.current!, targetId: targetNodeId }],
-              updatedAt: new Date().toISOString(),
-            }
-          })
-        }
-      }
-
-      setConnectingFrom(null)
-      connectingRef.current = null
-      setMouseCanvasPos(null)
-    }
-
-    document.addEventListener('mousedown', onDown, true)
-    document.addEventListener('mouseup', onUp, true)
-    return () => {
-      document.removeEventListener('mousedown', onDown, true)
-      document.removeEventListener('mouseup', onUp, true)
-    }
-  }, [])
+  // Connection handled entirely inside FlowCanvas via props
 
   const handleAddNode = useCallback((node: FlowNode) => {
     setFlow((prev) => ({
@@ -540,7 +442,7 @@ export default function FlowBuilderPage() {
           onDuplicateNode={handleDuplicateNode}
           connectingFrom={connectingFrom}
           onSetConnectingFrom={setConnectingFrom}
-          externalMousePos={mouseCanvasPos}
+          externalMousePos={null}
           trafficMap={trafficMap}
         />
 

@@ -26,13 +26,15 @@ interface BaseFlowNodeProps {
   selected: boolean
   onSelect: (id: string) => void
   onDuplicate?: (nodeId: string) => void
+  onPortDown?: (nodeId: string) => void
+  onPortUp?: (nodeId: string) => void
   computedTraffic?: number
 }
 
 export const NODE_W = 200
 export const NODE_H_MIN = 85
 
-export function BaseFlowNode({ node, selected, onSelect, onDuplicate, computedTraffic }: BaseFlowNodeProps) {
+export function BaseFlowNode({ node, selected, onSelect, onDuplicate, onPortDown, onPortUp, computedTraffic }: BaseFlowNodeProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `canvas-node-${node.id}`,
     data: { type: 'canvas-node', nodeId: node.id },
@@ -87,13 +89,20 @@ export function BaseFlowNode({ node, selected, onSelect, onDuplicate, computedTr
         return (
           <div
             key={side}
-            className="absolute w-3 h-3 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 hover:scale-150 transition-all z-30 cursor-crosshair"
+            className="absolute w-4 h-4 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 hover:scale-150 transition-all z-30 cursor-crosshair"
             style={pos}
             data-port="port"
             data-port-side={side}
             data-node-id={node.id}
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              onPortDown?.(node.id)
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation()
+              onPortUp?.(node.id)
+            }}
           />
         )
       })}

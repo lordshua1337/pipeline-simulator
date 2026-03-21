@@ -61,56 +61,36 @@ export function FlowCanvas({
 
   const { setNodeRef: setDropRef } = useDroppable({ id: 'flow-canvas' })
 
-  // Edge creation via port clicking
+  // Port handlers -- called directly by BaseFlowNode
+  const handlePortDown = useCallback((nodeId: string) => {
+    onSetConnectingFrom(nodeId)
+  }, [onSetConnectingFrom])
+
+  const handlePortUp = useCallback((nodeId: string) => {
+    if (!connectingFrom || connectingFrom === nodeId) return
+    const edgeExists = edges.some(
+      (e) => (e.sourceId === connectingFrom && e.targetId === nodeId) ||
+             (e.sourceId === nodeId && e.targetId === connectingFrom)
+    )
+    if (!edgeExists) {
+      onAddEdge({ id: generateFlowId('edge'), sourceId: connectingFrom, targetId: nodeId })
+    }
+    onSetConnectingFrom(null)
+    setMousePos(null)
+  }, [connectingFrom, edges, onAddEdge, onSetConnectingFrom])
+
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement
-      const port = target.closest('[data-port]') as HTMLElement | null
-
-      if (port) {
-        const nodeId = port.dataset.nodeId
-
-        if (nodeId && !connectingFrom) {
-          // Start a new connection from this port
-          onSetConnectingFrom(nodeId)
-          e.stopPropagation()
-          return
-        }
-
-        if (nodeId && connectingFrom) {
-          // Complete the connection
-          if (connectingFrom !== nodeId) {
-            const edgeExists = edges.some(
-              (edge) =>
-                (edge.sourceId === connectingFrom && edge.targetId === nodeId) ||
-                (edge.sourceId === nodeId && edge.targetId === connectingFrom)
-            )
-            if (!edgeExists) {
-              onAddEdge({
-                id: generateFlowId('edge'),
-                sourceId: connectingFrom,
-                targetId: nodeId,
-              })
-            }
-          }
-          onSetConnectingFrom(null)
-          setMousePos(null)
-          e.stopPropagation()
-          return
-        }
-      }
-
-      // Click on empty canvas -- deselect
-      if (!port) {
-        onSelectNode(null)
-        onSelectEdge(null)
+      // Click on empty canvas -- deselect and cancel connection
+      onSelectNode(null)
+      onSelectEdge(null)
+      if (connectingFrom) {
         onSetConnectingFrom(null)
         setMousePos(null)
       }
-
       startPan(e)
     },
-    [connectingFrom, edges, onAddEdge, onSelectNode, onSelectEdge, startPan]
+    [connectingFrom, onSelectNode, onSelectEdge, onSetConnectingFrom, startPan]
   )
 
   const handleCanvasMouseMove = useCallback(
@@ -181,6 +161,8 @@ export function FlowCanvas({
               selected={selectedNodeId === node.id}
               onSelect={onSelectNode}
               onDuplicate={onDuplicateNode}
+              onPortDown={handlePortDown}
+              onPortUp={handlePortUp}
               computedTraffic={trafficMap?.get(node.id)}
             />
           ))}
