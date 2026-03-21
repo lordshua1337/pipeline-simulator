@@ -74,9 +74,11 @@ export function FormAnalyzer() {
   }, [steps])
 
   const removeStep = useCallback((id: string) => {
-    if (steps.length <= 2) return
-    setSteps((prev) => prev.filter((s) => s.id !== id))
-  }, [steps.length])
+    setSteps((prev) => {
+      if (prev.length <= 1) return prev
+      return prev.filter((s) => s.id !== id)
+    })
+  }, [])
 
   const handleCSV = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -118,17 +120,42 @@ export function FormAnalyzer() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Total Started', value: totalEntries.toLocaleString(), color: 'text-gray-900' },
-          { label: 'Completed', value: totalCompletions.toLocaleString(), color: 'text-green-600' },
-          { label: 'Completion Rate', value: `${overallConversion.toFixed(1)}%`, color: overallConversion > 20 ? 'text-green-600' : 'text-red-500' },
-          { label: 'Biggest Drop-off', value: worstStep?.name || '--', color: 'text-red-500' },
-        ].map((card) => (
-          <div key={card.label} className="bg-gray-50 rounded-lg px-4 py-3">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">{card.label}</div>
-            <div className={`text-lg font-bold ${card.color}`}>{card.value}</div>
+        <div className="bg-gray-50 rounded-lg px-4 py-3">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Total Started</div>
+          <input
+            type="number"
+            value={totalEntries}
+            onChange={(e) => {
+              const newTotal = parseInt(e.target.value) || 0
+              if (totalEntries === 0) return
+              const ratio = newTotal / totalEntries
+              setSteps((prev) => prev.map((s) => ({ ...s, submissions: Math.round(s.submissions * ratio) })))
+            }}
+            className="text-lg font-bold text-gray-900 bg-transparent outline-none w-full hover:bg-gray-100 focus:bg-gray-100 rounded px-1 -mx-1"
+          />
+        </div>
+        <div className="bg-gray-50 rounded-lg px-4 py-3">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Completed</div>
+          <input
+            type="number"
+            value={totalCompletions}
+            onChange={(e) => {
+              const newComp = parseInt(e.target.value) || 0
+              setSteps((prev) => prev.map((s, i) => i === prev.length - 1 ? { ...s, submissions: newComp } : s))
+            }}
+            className="text-lg font-bold text-green-600 bg-transparent outline-none w-full hover:bg-gray-100 focus:bg-gray-100 rounded px-1 -mx-1"
+          />
+        </div>
+        <div className="bg-gray-50 rounded-lg px-4 py-3">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Completion Rate</div>
+          <div className={`text-lg font-bold ${overallConversion > 20 ? 'text-green-600' : 'text-red-500'}`}>
+            {overallConversion.toFixed(1)}%
           </div>
-        ))}
+        </div>
+        <div className="bg-gray-50 rounded-lg px-4 py-3">
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Biggest Drop-off</div>
+          <div className="text-lg font-bold text-red-500">{worstStep?.name || '--'}</div>
+        </div>
       </div>
 
       {/* Editable table */}
@@ -216,14 +243,12 @@ export function FormAnalyzer() {
                     </div>
                   </td>
                   <td className="px-2 py-2">
-                    {steps.length > 2 && (
-                      <button
-                        onClick={() => removeStep(row.id)}
-                        className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => removeStep(row.id)}
+                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </td>
                 </tr>
               )
