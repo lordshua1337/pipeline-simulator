@@ -1,8 +1,71 @@
 'use client'
 
+import { useState } from 'react'
 import { NODE_TYPE_META, type FlowNode, type FlowNodeMetrics } from '@/lib/flow-types'
 import { NODE_VARIANTS } from '@/lib/node-variants'
-import { X, Trash2 } from 'lucide-react'
+import { X, Trash2, ChevronDown } from 'lucide-react'
+
+function VariantDropdown({ variants, selectedId, color, onSelect }: {
+  variants: readonly { id: string; label: string; emoji: string; icon?: string }[]
+  selectedId: string
+  color: string
+  onSelect: (v: { id: string; label: string }) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = variants.find((v) => v.id === selectedId)
+
+  return (
+    <div className="px-4 py-3 border-b border-gray-100 relative">
+      <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+        Type
+      </label>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left bg-gray-50 border border-gray-200 hover:border-gray-300 transition-colors"
+      >
+        {selected?.icon ? (
+          <img src={selected.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+        ) : selected ? (
+          <span className="w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ backgroundColor: color }}>
+            {selected.emoji}
+          </span>
+        ) : null}
+        <span className="text-xs text-gray-700 flex-1 truncate">
+          {selected?.label || 'Select type...'}
+        </span>
+        <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-4 right-4 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto py-1">
+            {variants.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => { onSelect(v); setOpen(false) }}
+                className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors ${
+                  v.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'
+                }`}
+              >
+                {v.icon ? (
+                  <img src={v.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+                ) : (
+                  <span className="w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0" style={{ backgroundColor: color }}>
+                    {v.emoji}
+                  </span>
+                )}
+                <span className={`text-[11px] ${v.id === selectedId ? 'font-medium text-blue-700' : 'text-gray-700'}`}>
+                  {v.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 interface NodeConfigPanelProps {
   node: FlowNode
@@ -77,43 +140,19 @@ export function NodeConfigPanel({ node, onUpdate, onDelete, onClose }: NodeConfi
         />
       </div>
 
-      {/* Variant selector with icons */}
+      {/* Variant dropdown */}
       {NODE_VARIANTS[node.type] && NODE_VARIANTS[node.type].length > 1 && (
-        <div className="px-4 py-3 border-b border-gray-100">
-          <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Type
-          </label>
-          <div className="max-h-48 overflow-y-auto space-y-0.5">
-            {NODE_VARIANTS[node.type].map((v) => {
-              const isActive = (node.config?.variant as string) === v.id
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => {
-                    onUpdate(node.id, {
-                      config: { ...node.config, variant: v.id },
-                      label: v.label,
-                    })
-                  }}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-all ${
-                    isActive ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  {v.icon ? (
-                    <img src={v.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
-                  ) : (
-                    <span className="w-4 h-4 rounded bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-500 flex-shrink-0">
-                      {v.emoji}
-                    </span>
-                  )}
-                  <span className={`text-[11px] ${isActive ? 'font-medium text-blue-700' : 'text-gray-700'}`}>
-                    {v.label}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        <VariantDropdown
+          variants={NODE_VARIANTS[node.type]}
+          selectedId={(node.config?.variant as string) || ''}
+          color={meta.color}
+          onSelect={(v) => {
+            onUpdate(node.id, {
+              config: { ...node.config, variant: v.id },
+              label: v.label,
+            })
+          }}
+        />
       )}
 
       {/* Metrics */}
