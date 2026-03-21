@@ -121,14 +121,14 @@ function drawCloud(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
   ctx.fill()
 }
 
-function drawHillBg(ctx: CanvasRenderingContext2D, x: number, size: number) {
+function drawHillBg(ctx: CanvasRenderingContext2D, x: number, size: number, groundY: number) {
   ctx.fillStyle = '#00A800'
   ctx.beginPath()
-  ctx.arc(x, GROUND_Y, size, Math.PI, 0)
+  ctx.arc(x, groundY, size, Math.PI, 0)
   ctx.fill()
   ctx.fillStyle = '#80D010'
   ctx.beginPath()
-  ctx.arc(x, GROUND_Y, size * 0.6, Math.PI, 0)
+  ctx.arc(x, groundY, size * 0.6, Math.PI, 0)
   ctx.fill()
 }
 
@@ -296,10 +296,10 @@ export default function Home() {
       ctx.fillRect(0, 0, W, H)
 
       // Hills (scaled to screen)
-      drawHillBg(ctx, W * 0.12, W * 0.06)
-      drawHillBg(ctx, W * 0.35, W * 0.03)
-      drawHillBg(ctx, W * 0.75, W * 0.05)
-      drawHillBg(ctx, W * 0.9, W * 0.025)
+      drawHillBg(ctx, W * 0.12, W * 0.06, GROUND_Y)
+      drawHillBg(ctx, W * 0.35, W * 0.03, GROUND_Y)
+      drawHillBg(ctx, W * 0.75, W * 0.05, GROUND_Y)
+      drawHillBg(ctx, W * 0.9, W * 0.025, GROUND_Y)
 
       // Clouds (spread across screen)
       for (let cx = W * 0.08; cx < W; cx += W * 0.22) {
