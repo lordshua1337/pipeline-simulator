@@ -24,12 +24,13 @@ interface BaseFlowNodeProps {
   node: FlowNode
   selected: boolean
   onSelect: (id: string) => void
+  onDuplicate?: (nodeId: string) => void
   computedTraffic?: number
 }
 
 const PORT_CLASS = 'absolute w-4 h-4 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 hover:scale-125 transition-all z-30 cursor-crosshair'
 
-export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: BaseFlowNodeProps) {
+export function BaseFlowNode({ node, selected, onSelect, onDuplicate, computedTraffic }: BaseFlowNodeProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `canvas-node-${node.id}`,
     data: { type: 'canvas-node', nodeId: node.id },
@@ -57,6 +58,10 @@ export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: Base
       onClick={(e) => {
         e.stopPropagation()
         onSelect(node.id)
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation()
+        onDuplicate?.(node.id)
       }}
       className="group"
     >
@@ -114,26 +119,46 @@ export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: Base
           </span>
         </div>
 
-        {/* Metrics */}
-        <div className="px-3 py-2 space-y-1">
+        {/* Metrics -- show everything that has a value */}
+        <div className="px-3 py-1.5 space-y-0.5">
           {traffic > 0 && (
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">Traffic</span>
-              <span className="text-[10px] font-mono font-medium text-gray-700">
-                {traffic.toLocaleString()}
-              </span>
+              <span className="text-[9px] text-gray-400">Traffic</span>
+              <span className="text-[9px] font-mono font-medium text-gray-600">{traffic.toLocaleString()}</span>
             </div>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-500">Conv. Rate</span>
-            <span className="text-[10px] font-mono font-medium text-gray-700">{convPct}%</span>
+            <span className="text-[9px] text-gray-400">Conv.</span>
+            <span className="text-[9px] font-mono font-medium text-gray-600">{convPct}%</span>
           </div>
           {node.metrics.revenuePerSale > 0 && (
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">Revenue</span>
-              <span className="text-[10px] font-mono font-medium text-green-600">
-                ${node.metrics.revenuePerSale}
-              </span>
+              <span className="text-[9px] text-gray-400">Rev/Sale</span>
+              <span className="text-[9px] font-mono font-medium text-gray-600">${node.metrics.revenuePerSale}</span>
+            </div>
+          )}
+          {node.metrics.costPerClick > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-gray-400">CPC</span>
+              <span className="text-[9px] font-mono font-medium text-gray-600">${node.metrics.costPerClick}</span>
+            </div>
+          )}
+          {node.metrics.costPerLead > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-gray-400">CPL</span>
+              <span className="text-[9px] font-mono font-medium text-gray-600">${node.metrics.costPerLead}</span>
+            </div>
+          )}
+          {node.metrics.timeInStageHours > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-gray-400">Time</span>
+              <span className="text-[9px] font-mono font-medium text-gray-600">{node.metrics.timeInStageHours}h</span>
+            </div>
+          )}
+          {node.metrics.dropOffRate > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-gray-400">Drop-off</span>
+              <span className="text-[9px] font-mono font-medium text-gray-600">{(node.metrics.dropOffRate * 100).toFixed(0)}%</span>
             </div>
           )}
         </div>

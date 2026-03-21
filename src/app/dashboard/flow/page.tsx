@@ -138,6 +138,23 @@ export default function FlowBuilderPage() {
     }))
   }, [])
 
+  const handleDuplicateNode = useCallback((nodeId: string) => {
+    const node = flow.nodes.find((n) => n.id === nodeId)
+    if (!node) return
+    const newNode: FlowNode = {
+      ...node,
+      id: generateFlowId('node'),
+      label: `${node.label} (copy)`,
+      position: { x: node.position.x + 40, y: node.position.y + 40 },
+    }
+    setFlow((prev) => ({
+      ...prev,
+      nodes: [...prev.nodes, newNode],
+      updatedAt: new Date().toISOString(),
+    }))
+    setSelectedNodeId(newNode.id)
+  }, [flow.nodes])
+
   const handleDeleteNode = useCallback((nodeId: string) => {
     setFlow((prev) => ({
       ...prev,
@@ -361,6 +378,7 @@ export default function FlowBuilderPage() {
             onAddNode={handleAddNode}
             onMoveNode={handleMoveNode}
             onAddEdge={handleAddEdge}
+            onDuplicateNode={handleDuplicateNode}
             trafficMap={trafficMap}
           />
 

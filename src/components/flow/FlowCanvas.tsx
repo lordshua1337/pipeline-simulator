@@ -21,6 +21,7 @@ interface FlowCanvasProps {
   onAddNode: (node: FlowNode) => void
   onMoveNode: (nodeId: string, position: { x: number; y: number }) => void
   onAddEdge: (edge: FlowEdge) => void
+  onDuplicateNode: (nodeId: string) => void
   trafficMap?: Map<string, number>
 }
 
@@ -34,6 +35,7 @@ export function FlowCanvas({
   onAddNode,
   onMoveNode,
   onAddEdge,
+  onDuplicateNode,
   trafficMap,
 }: FlowCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -171,6 +173,7 @@ export function FlowCanvas({
               node={node}
               selected={selectedNodeId === node.id}
               onSelect={onSelectNode}
+              onDuplicate={onDuplicateNode}
               computedTraffic={trafficMap?.get(node.id)}
             />
           ))}
