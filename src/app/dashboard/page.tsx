@@ -1,316 +1,220 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Plus, Trash2, Copy, Archive, Workflow, GitBranch, FormInput } from 'lucide-react'
-import { PIPELINE_TEMPLATES } from '@/lib/templates'
-import {
-  loadState,
-  createPipeline,
-  addStages,
-  addItems,
-  deletePipeline,
-  generateId,
-} from '@/lib/state'
-import type { Pipeline, Stage, Item } from '@/lib/types'
-import type { AppState } from '@/lib/state'
+import { useState, useEffect, useCallback } from 'react'
+import { TabBar } from '@/components/workspace/TabBar'
+import { NewSimModal } from '@/components/workspace/NewSimModal'
+import { ABTestSim } from '@/components/sims/ABTestSim'
+import { RevenueForecast } from '@/components/sims/RevenueForecast'
+import { CohortAnalysis } from '@/components/sims/CohortAnalysis'
+import { PricingSim } from '@/components/sims/PricingSim'
+import { LeadScoring } from '@/components/sims/LeadScoring'
 import { FormAnalyzer } from '@/components/flow/FormAnalyzer'
-
-type DashboardTab = 'pipelines' | 'flow' | 'forms'
+import type { SimulationType, WorkspaceTab, SimTabData } from '@/lib/workspace-types'
+import {
+  loadWorkspace,
+  createTab,
+  closeTab,
+  setActiveTab,
+  renameTab,
+  updateTabData,
+  duplicateTab,
+} from '@/lib/workspace-state'
+import type { WorkspaceState } from '@/lib/workspace-types'
+import {
+  GitBranch, FlaskConical, TrendingUp, Users,
+  DollarSign, Target, FormInput, Workflow, Sparkles,
+} from 'lucide-react'
 
 export default function DashboardPage() {
-  const [state, setState] = useState<AppState>({ pipelines: [], stages: [], items: [], history: [] })
-  const [showCreate, setShowCreate] = useState(false)
-  const [activeTab, setActiveTab] = useState<DashboardTab>('pipelines')
+  const [workspace, setWorkspace] = useState<WorkspaceState>({ tabs: [], activeTabId: null })
+  const [showNewModal, setShowNewModal] = useState(false)
 
   useEffect(() => {
-    setState(loadState())
+    setWorkspace(loadWorkspace())
   }, [])
 
-  const handleCreate = (templateId: string) => {
-    const template = PIPELINE_TEMPLATES.find((t) => t.id === templateId)
-    if (!template) return
+  const activeTab = workspace.tabs.find((t) => t.id === workspace.activeTabId)
 
-    const now = new Date().toISOString()
-    const pipelineId = generateId('pipe')
-
-    const pipeline: Pipeline = {
-      id: pipelineId,
-      name: template.name,
-      description: template.description,
-      type: template.type,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
+  const handleCreate = useCallback((type: SimulationType) => {
+    if (type === 'flow_builder') {
+      window.location.href = '/dashboard/flow'
+      return
     }
-
-    let s = createPipeline(pipeline)
-
-    const stages: Stage[] = template.config.stages.map((stageConf, idx) => ({
-      id: generateId('stage'),
-      pipelineId,
-      name: stageConf.name,
-      description: stageConf.description ?? null,
-      position: idx + 1,
-      color: stageConf.color,
-      autoAdvanceEnabled: false,
-      autoAdvanceDays: 0,
-      slaWarningHours: 48,
-      createdAt: now,
-    }))
-
-    s = addStages(stages)
-
-    if (template.config.sampleItems) {
-      const items: Item[] = template.config.sampleItems.map((si) => ({
-        id: generateId('item'),
-        pipelineId,
-        stageId: stages[si.stageIndex]?.id ?? stages[0].id,
-        title: si.title,
-        description: si.description ?? null,
-        value: si.value,
-        metadata: {},
-        enteredAt: now,
-        updatedAt: now,
-        isSample: true,
-      }))
-
-      s = addItems(items)
+    if (type === 'pipeline') {
+      window.location.href = '/dashboard/pipeline'
+      return
     }
+    setWorkspace(createTab(type))
+  }, [])
 
-    setState(s)
-    setShowCreate(false)
-  }
+  const handleClose = useCallback((id: string) => {
+    setWorkspace(closeTab(id))
+  }, [])
 
-  const handleDelete = (id: string) => {
-    setState(deletePipeline(id))
-  }
+  const handleSelect = useCallback((id: string) => {
+    setWorkspace(setActiveTab(id))
+  }, [])
 
-  const pipelines = state.pipelines.filter((p) => p.status !== 'archived')
+  const handleRename = useCallback((id: string, name: string) => {
+    setWorkspace(renameTab(id, name))
+  }, [])
 
-  const tabs: { id: DashboardTab; label: string; icon: typeof Workflow }[] = [
-    { id: 'pipelines', label: 'Pipelines', icon: Workflow },
-    { id: 'flow', label: 'Flow Builder', icon: GitBranch },
-    { id: 'forms', label: 'Form Analyzer', icon: FormInput },
-  ]
+  const handleDuplicate = useCallback((id: string) => {
+    setWorkspace(duplicateTab(id))
+  }, [])
 
-  if (activeTab === 'flow') {
-    // Redirect to flow builder page
-    window.location.href = '/dashboard/flow'
-    return null
-  }
+  const handleDataChange = useCallback((tabId: string, data: SimTabData) => {
+    setWorkspace(updateTabData(tabId, data))
+  }, [])
 
-  if (activeTab === 'forms') {
+  // Empty workspace welcome
+  if (workspace.tabs.length === 0 && !showNewModal) {
     return (
-      <div className="h-[calc(100vh-64px)]">
-        {/* Tab bar */}
-        <div className="border-b px-6 flex items-center gap-1 pt-2" style={{ borderColor: 'var(--border)' }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+      <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50/50">
+        <div className="text-center max-w-lg">
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Sparkles className="w-8 h-8 text-blue-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Simulation Workbench</h1>
+          <p className="text-sm text-gray-500 mb-8">
+            Model any measurable business process. A/B tests, revenue forecasts,
+            cohort retention, pricing optimization, lead scoring, funnels -- all in one workspace.
+          </p>
+          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mb-6">
+            {[
+              { type: 'ab_test' as SimulationType, label: 'A/B Test', icon: FlaskConical, color: '#F59E0B' },
+              { type: 'revenue_forecast' as SimulationType, label: 'Revenue Forecast', icon: TrendingUp, color: '#22C55E' },
+              { type: 'cohort_analysis' as SimulationType, label: 'Cohort Analysis', icon: Users, color: '#EC4899' },
+              { type: 'pricing_sim' as SimulationType, label: 'Pricing Sim', icon: DollarSign, color: '#14B8A6' },
+              { type: 'lead_scoring' as SimulationType, label: 'Lead Scoring', icon: Target, color: '#EF4444' },
+              { type: 'form_analyzer' as SimulationType, label: 'Form Analyzer', icon: FormInput, color: '#8B5CF6' },
+            ].map((item) => (
+              <button
+                key={item.type}
+                onClick={() => handleCreate(item.type)}
+                className="flex items-center gap-2.5 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-all text-left"
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
+                  <item.icon className="w-4 h-4" style={{ color: item.color }} />
+                </div>
+                <span className="text-sm font-medium text-gray-700">{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <a
+              href="/dashboard/flow"
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+              <GitBranch className="w-4 h-4" />
+              Flow Builder
+            </a>
+            <a
+              href="/dashboard/pipeline"
+              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              <Workflow className="w-4 h-4" />
+              Pipeline Kanban
+            </a>
+          </div>
         </div>
-        <FormAnalyzer />
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
-      {/* Tab bar */}
-      <div className="border-b mb-6 flex items-center gap-1" style={{ borderColor: 'var(--border)' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
-              activeTab === tab.id
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div className="h-[calc(100vh-64px)] flex flex-col">
+      <TabBar
+        tabs={workspace.tabs}
+        activeTabId={workspace.activeTabId}
+        onSelect={handleSelect}
+        onClose={handleClose}
+        onRename={handleRename}
+        onDuplicate={handleDuplicate}
+        onNew={() => setShowNewModal(true)}
+      />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black mb-1">Your Pipelines</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Manage and simulate your multi-stage processes.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-all hover:scale-105"
-          style={{ background: 'var(--blue)' }}
-        >
-            <Plus size={16} />
-            New Pipeline
-          </button>
-      </div>
-
-      {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div
-            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl p-6"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            <h2 className="text-xl font-bold mb-4">Choose a Template</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {PIPELINE_TEMPLATES.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  onClick={() => handleCreate(tpl.id)}
-                  className="p-4 rounded-lg text-left transition-all hover:scale-[1.02]"
-                  style={{
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                    borderLeft: `4px solid ${tpl.color}`,
-                  }}
-                >
-                  <h3 className="font-bold text-sm mb-1">{tpl.name}</h3>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {tpl.description}
-                  </p>
-                  <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                    {tpl.config.stages.length} stages
-                    {tpl.config.sampleItems
-                      ? ` / ${tpl.config.sampleItems.length} sample items`
-                      : ''}
-                  </p>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowCreate(false)}
-              className="mt-4 px-4 py-2 rounded-lg text-sm font-medium"
-              style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-            >
-              Cancel
-            </button>
+      {/* Active tab content */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab ? (
+          <SimContent
+            tab={activeTab}
+            onDataChange={(data) => handleDataChange(activeTab.id, data)}
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center text-sm text-gray-400">
+            Click a tab or create a new simulation
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Pipeline Cards */}
-      {pipelines.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
-            No pipelines yet.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="text-sm font-medium"
-            style={{ color: 'var(--blue)' }}
-          >
-            Create your first pipeline from a template.
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {pipelines.map((pipeline) => {
-            const stages = state.stages
-              .filter((s) => s.pipelineId === pipeline.id)
-              .sort((a, b) => a.position - b.position)
-            const items = state.items.filter((i) => i.pipelineId === pipeline.id)
-            const totalValue = items.reduce((sum, i) => sum + i.value, 0)
-            const template = PIPELINE_TEMPLATES.find((t) => t.type === pipeline.type)
-
-            return (
-              <div
-                key={pipeline.id}
-                className="rounded-xl overflow-hidden"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderTop: `3px solid ${template?.color ?? 'var(--blue)'}`,
-                }}
-              >
-                <Link
-                  href={`/dashboard/pipeline?id=${pipeline.id}`}
-                  className="block p-5 transition-all hover:bg-[var(--bg-alt)]"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-base font-bold">{pipeline.name}</h3>
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        {pipeline.description}
-                      </p>
-                    </div>
-                    <span
-                      className="text-xs font-medium px-2 py-0.5 rounded"
-                      style={{
-                        background: 'var(--blue-soft)',
-                        color: 'var(--blue)',
-                      }}
-                    >
-                      {pipeline.type.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-
-                  {/* Stage preview */}
-                  <div className="flex gap-1 mb-3">
-                    {stages.map((stage) => {
-                      const count = items.filter((i) => i.stageId === stage.id).length
-                      return (
-                        <div key={stage.id} className="flex-1">
-                          <div
-                            className="h-1.5 rounded-full mb-1"
-                            style={{ background: stage.color }}
-                          />
-                          <p className="text-[9px] truncate" style={{ color: 'var(--text-muted)' }}>
-                            {stage.name} ({count})
-                          </p>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <span>{items.length} items</span>
-                    <span>{stages.length} stages</span>
-                    {totalValue > 0 && (
-                      <span style={{ color: 'var(--green)' }}>
-                        ${totalValue.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-
-                {/* Actions */}
-                <div
-                  className="flex items-center justify-end gap-2 px-5 py-2"
-                  style={{ borderTop: '1px solid var(--border)' }}
-                >
-                  <button
-                    onClick={() => handleDelete(pipeline.id)}
-                    className="p-1.5 rounded transition-all hover:bg-[var(--red-soft)]"
-                    title="Delete pipeline"
-                  >
-                    <Trash2 size={14} style={{ color: 'var(--red)' }} />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      <NewSimModal
+        open={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        onCreate={handleCreate}
+      />
     </div>
   )
+}
+
+function SimContent({ tab, onDataChange }: { tab: WorkspaceTab; onDataChange: (data: SimTabData) => void }) {
+  const { simData } = tab
+
+  switch (simData.type) {
+    case 'ab_test':
+      return (
+        <ABTestSim
+          data={simData.data}
+          onChange={(d) => onDataChange({ type: 'ab_test', data: d })}
+        />
+      )
+    case 'revenue_forecast':
+      return (
+        <RevenueForecast
+          data={simData.data}
+          onChange={(d) => onDataChange({ type: 'revenue_forecast', data: d })}
+        />
+      )
+    case 'cohort_analysis':
+      return (
+        <CohortAnalysis
+          data={simData.data}
+          onChange={(d) => onDataChange({ type: 'cohort_analysis', data: d })}
+        />
+      )
+    case 'pricing_sim':
+      return (
+        <PricingSim
+          data={simData.data}
+          onChange={(d) => onDataChange({ type: 'pricing_sim', data: d })}
+        />
+      )
+    case 'lead_scoring':
+      return (
+        <LeadScoring
+          data={simData.data}
+          onChange={(d) => onDataChange({ type: 'lead_scoring', data: d })}
+        />
+      )
+    case 'form_analyzer':
+      return <FormAnalyzer />
+    case 'flow_builder':
+      return (
+        <div className="h-full flex items-center justify-center">
+          <a href="/dashboard/flow" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
+            Open Flow Builder
+          </a>
+        </div>
+      )
+    case 'pipeline':
+      return (
+        <div className="h-full flex items-center justify-center">
+          <a href="/dashboard/pipeline" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
+            Open Pipeline
+          </a>
+        </div>
+      )
+    default:
+      return <div className="h-full flex items-center justify-center text-gray-400">Unknown simulation type</div>
+  }
 }
