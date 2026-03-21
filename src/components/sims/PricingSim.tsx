@@ -1,8 +1,9 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import type { PricingData } from '@/lib/workspace-types'
-import { Plus, X, TrendingUp, TrendingDown, Users, Repeat, Gift, Percent, ShieldCheck, Package, Calendar, Scale, Building2, CreditCard, Truck, Clock, BadgeDollarSign, Info } from 'lucide-react'
+import { Plus, X, TrendingUp, TrendingDown, Users, Repeat, Gift, Percent, ShieldCheck, Package, Calendar, Scale, Building2, CreditCard, Truck, Clock, BadgeDollarSign, Info, Save, FolderOpen, Pencil, Trash2, ChevronLeft } from 'lucide-react'
+import { loadPresets, savePreset, deletePreset, updatePreset, STARTER_PRESETS, type PricingPreset } from '@/lib/preset-store'
 
 interface PricingSimProps {
   data: PricingData
@@ -293,34 +294,87 @@ function fmt(n: number): string {
 
 export function PricingSim({ data, onChange }: PricingSimProps) {
   const [showVarPicker, setShowVarPicker] = useState(false)
+  const [activeVars, setActiveVars] = useState<{ id: string; values: Record<string, number> }[]>([])
+  const [showPresets, setShowPresets] = useState(false)
+  const [presets, setPresets] = useState<readonly PricingPreset[]>([])
+  const [saveName, setSaveName] = useState('')
+  const [saveDesc, setSaveDesc] = useState('')
+  const [showSaveForm, setShowSaveForm] = useState(false)
+  const [editingPresetId, setEditingPresetId] = useState<string | null>(null)
 
-  // Use persisted active variables from data
-  const activeVars = data.activeVariables || []
-
-  const setActiveVars = useCallback((updater: { id: string; values: Record<string, number> }[] | ((prev: { id: string; values: Record<string, number> }[]) => { id: string; values: Record<string, number> }[])) => {
-    const next = typeof updater === 'function' ? updater([...activeVars]) : updater
-    onChange({ ...data, activeVariables: next })
-  }, [activeVars, data, onChange])
+  useEffect(() => {
+    const saved = loadPresets()
+    setPresets(saved.length > 0 ? saved : STARTER_PRESETS)
+  }, [])
 
   const addVariable = useCallback((varDef: VarDefinition) => {
     const defaults: Record<string, number> = {}
     for (const f of varDef.fields) defaults[f.key] = f.defaultValue
-    onChange({ ...data, activeVariables: [...activeVars, { id: varDef.id, values: defaults }] })
+    setActiveVars((prev) => [...prev, { id: varDef.id, values: defaults }])
     setShowVarPicker(false)
-  }, [activeVars, data, onChange])
+  }, [])
 
   const removeVariable = useCallback((varId: string) => {
-    onChange({ ...data, activeVariables: activeVars.filter((v) => v.id !== varId) })
-  }, [activeVars, data, onChange])
+    setActiveVars((prev) => prev.filter((v) => v.id !== varId))
+  }, [])
 
   const updateVarValue = useCallback((varId: string, key: string, value: number) => {
+    setActiveVars((prev) => prev.map((v) =>
+      v.id === varId ? { ...v, values: { ...v.values, [key]: value } } : v
+    ))
+  }, [])
+
+  const handleLoadPreset = useCallback((preset: PricingPreset) => {
     onChange({
       ...data,
-      activeVariables: activeVars.map((v) =>
-        v.id === varId ? { ...v, values: { ...v.values, [key]: value } } : v
-      ),
+      currentPrice: preset.baseConfig.currentPrice,
+      currentVolume: preset.baseConfig.currentVolume,
+      elasticity: preset.baseConfig.elasticity,
+      costPerUnit: preset.baseConfig.costPerUnit,
+      pricePoints: preset.baseConfig.pricePoints,
     })
-  }, [activeVars, data, onChange])
+    setActiveVars([...preset.variables.map((v) => ({ ...v, values: { ...v.values } }))])
+    setShowPresets(false)
+  }, [data, onChange])
+
+  const handleSavePreset = useCallback(() => {
+    if (!saveName.trim()) return
+    const saved = savePreset({
+      name: saveName.trim(),
+      description: saveDesc.trim(),
+      baseConfig: {
+        currentPrice: data.currentPrice,
+        currentVolume: data.currentVolume,
+        elasticity: data.elasticity,
+        costPerUnit: data.costPerUnit,
+        pricePoints: data.pricePoints,
+      },
+      variables: activeVars,
+    })
+    setPresets(saved)
+    setSaveName('')
+    setSaveDesc('')
+    setShowSaveForm(false)
+  }, [saveName, saveDesc, data, activeVars])
+
+  const handleUpdatePreset = useCallback((id: string) => {
+    const updated = updatePreset(id, {
+      baseConfig: {
+        currentPrice: data.currentPrice,
+        currentVolume: data.currentVolume,
+        elasticity: data.elasticity,
+        costPerUnit: data.costPerUnit,
+        pricePoints: data.pricePoints,
+      },
+      variables: activeVars,
+    })
+    setPresets(updated)
+    setEditingPresetId(null)
+  }, [data, activeVars])
+
+  const handleDeletePreset = useCallback((id: string) => {
+    setPresets(deletePreset(id))
+  }, [])
 
   const unusedVars = AVAILABLE_VARIABLES.filter((v) => !activeVars.some((a) => a.id === v.id))
 
@@ -382,8 +436,25 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
           ))}
         </div>
 
-        {/* Add variable row */}
+        {/* Actions row */}
         <div className="flex items-center gap-2 mb-6">
+          <button
+            onClick={() => { setShowPresets(!showPresets); setShowSaveForm(false) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: 'var(--bg-alt)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            Presets
+          </button>
+          <button
+            onClick={() => { setShowSaveForm(!showSaveForm); setShowPresets(false) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: 'var(--bg-alt)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            <Save className="w-3.5 h-3.5" />
+            Save Model
+          </button>
+          <div className="w-px h-5" style={{ background: 'var(--border)' }} />
           <div className="relative">
             <button
               onClick={() => setShowVarPicker(!showVarPicker)}
@@ -422,6 +493,173 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
             )}
           </div>
         </div>
+
+        {/* Save form */}
+        {showSaveForm && (
+          <div className="sim-card mb-4">
+            <div className="text-[10px] uppercase tracking-widest font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
+              Save Current Model as Preset
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="Preset name (e.g., SaaS Q4 Model)"
+                className="sim-input flex-1"
+                style={{ fontSize: '12px' }}
+                autoFocus
+              />
+              <input
+                value={saveDesc}
+                onChange={(e) => setSaveDesc(e.target.value)}
+                placeholder="Short description (optional)"
+                className="sim-input flex-1"
+                style={{ fontSize: '12px' }}
+              />
+              <button
+                onClick={handleSavePreset}
+                disabled={!saveName.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-40"
+                style={{ background: 'var(--accent)', color: '#fff' }}
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowSaveForm(false)}
+                className="px-3 py-2 rounded-lg text-xs"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Preset library */}
+        {showPresets && (
+          <div className="sim-card mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] uppercase tracking-widest font-medium" style={{ color: 'var(--text-muted)' }}>
+                Preset Library
+              </div>
+              <button onClick={() => setShowPresets(false)} className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                Close
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {presets.map((preset) => {
+                const isEditing = editingPresetId === preset.id
+                const varCount = preset.variables.length
+
+                return (
+                  <div
+                    key={preset.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group"
+                    style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium" style={{ color: 'var(--text)' }}>
+                        {preset.name}
+                      </div>
+                      {preset.description && (
+                        <div className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                          {preset.description}
+                        </div>
+                      )}
+                      <div className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        ${preset.baseConfig.currentPrice} / {preset.baseConfig.currentVolume} units / {varCount} variable{varCount !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleUpdatePreset(preset.id)}
+                            className="px-2.5 py-1 rounded text-[10px] font-medium"
+                            style={{ background: 'var(--accent)', color: '#fff' }}
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            onClick={() => setEditingPresetId(null)}
+                            className="px-2 py-1 rounded text-[10px]"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleLoadPreset(preset)}
+                            className="px-2.5 py-1 rounded text-[10px] font-medium transition-colors"
+                            style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+                          >
+                            Load
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleLoadPreset(preset)
+                              setEditingPresetId(preset.id)
+                              setShowPresets(false)
+                            }}
+                            className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="Edit this preset"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          {!preset.id.startsWith('starter-') && (
+                            <button
+                              onClick={() => handleDeletePreset(preset.id)}
+                              className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+                              style={{ color: 'var(--text-muted)' }}
+                              title="Delete preset"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Editing indicator */}
+        {editingPresetId && (
+          <div
+            className="flex items-center justify-between px-3 py-2 rounded-lg mb-4"
+            style={{ background: 'var(--accent-soft)', border: '1px solid rgba(16,185,129,0.2)' }}
+          >
+            <div className="flex items-center gap-2">
+              <Pencil className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+              <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                Editing preset -- make changes then hit Save Changes
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleUpdatePreset(editingPresetId)}
+                className="px-3 py-1 rounded text-[10px] font-medium"
+                style={{ background: 'var(--accent)', color: '#fff' }}
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditingPresetId(null)}
+                className="text-[10px]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Active variables -- structured grid */}
         {activeVars.length > 0 && (
