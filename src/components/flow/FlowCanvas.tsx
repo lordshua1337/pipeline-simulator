@@ -2,12 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
   useDroppable,
-  type DragEndEvent,
 } from '@dnd-kit/core'
 import type { FlowNode, FlowEdge, FlowNodeType } from '@/lib/flow-types'
 import { NODE_TYPE_META, DEFAULT_METRICS } from '@/lib/flow-types'
@@ -58,55 +53,6 @@ export function FlowCanvas({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
 
   const { setNodeRef: setDropRef } = useDroppable({ id: 'flow-canvas' })
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  )
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, delta } = event
-      const data = active.data.current
-
-      if (!data) return
-
-      if (data.type === 'palette-item' && canvasRef.current) {
-        // Dropped from palette -- create new node
-        const nodeType = data.nodeType as FlowNodeType
-        const meta = NODE_TYPE_META[nodeType]
-        const rect = canvasRef.current.getBoundingClientRect()
-
-        // Calculate drop position in canvas coordinates
-        const activatorEvent = event.activatorEvent as MouseEvent
-        const dropX = activatorEvent.clientX + delta.x
-        const dropY = activatorEvent.clientY + delta.y
-        const canvasPos = screenToCanvas(dropX, dropY, rect)
-
-        const newNode: FlowNode = {
-          id: generateFlowId('node'),
-          type: nodeType,
-          label: meta.label,
-          position: { x: Math.round(canvasPos.x), y: Math.round(canvasPos.y) },
-          metrics: { ...DEFAULT_METRICS, ...meta.defaultMetrics },
-          config: {},
-        }
-
-        onAddNode(newNode)
-        onSelectNode(newNode.id)
-      } else if (data.type === 'canvas-node') {
-        // Repositioning existing node
-        const nodeId = data.nodeId as string
-        const node = nodes.find((n) => n.id === nodeId)
-        if (node) {
-          onMoveNode(nodeId, {
-            x: Math.round(node.position.x + delta.x / viewport.zoom),
-            y: Math.round(node.position.y + delta.y / viewport.zoom),
-          })
-        }
-      }
-    },
-    [nodes, viewport.zoom, screenToCanvas, onAddNode, onMoveNode, onSelectNode]
-  )
 
   // Edge creation via port clicking
   const handleCanvasMouseDown = useCallback(
@@ -180,7 +126,6 @@ export function FlowCanvas({
   }, [connectingFrom, endPan])
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div
         ref={(el) => {
           setDropRef(el)
@@ -265,6 +210,5 @@ export function FlowCanvas({
           </div>
         )}
       </div>
-    </DndContext>
   )
 }

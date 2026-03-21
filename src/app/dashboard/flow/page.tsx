@@ -1,7 +1,14 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
 import {
   ArrowLeft, Save, Play, RotateCcw, Layout, Loader2,
   ChevronDown,
@@ -10,7 +17,8 @@ import { FlowCanvas } from '@/components/flow/FlowCanvas'
 import { NodePalette } from '@/components/flow/NodePalette'
 import { NodeConfigPanel } from '@/components/flow/NodeConfigPanel'
 import { FlowResults } from '@/components/flow/FlowResults'
-import type { FlowDocument, FlowNode, FlowEdge, FlowSimulationResult, FlowMonteCarloResult } from '@/lib/flow-types'
+import type { FlowDocument, FlowNode, FlowEdge, FlowNodeType, FlowSimulationResult, FlowMonteCarloResult } from '@/lib/flow-types'
+import { NODE_TYPE_META, DEFAULT_METRICS } from '@/lib/flow-types'
 import {
   generateFlowId,
   createFlow,
@@ -70,6 +78,7 @@ function loadTemplateAsFlow(templateId: string): FlowDocument {
 
 export default function FlowBuilderPage() {
   const router = useRouter()
+  const canvasRef = useRef<HTMLDivElement>(null)
   const [flow, setFlow] = useState<FlowDocument>(createEmptyFlow)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
@@ -179,7 +188,55 @@ export default function FlowBuilderPage() {
     setMcResult(null)
   }, [])
 
+  // DnD sensors and handler -- must be at page level to wrap both palette and canvas
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  )
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, delta } = event
+      const data = active.data.current
+      if (!data) return
+
+      if (data.type === 'palette-item') {
+        // Dropped from palette -- create new node at center of canvas
+        const nodeType = data.nodeType as FlowNodeType
+        const meta = NODE_TYPE_META[nodeType]
+
+        // Place at approximate center or use activator position
+        const activatorEvent = event.activatorEvent as MouseEvent
+        const dropX = activatorEvent.clientX + delta.x - 300 // offset for palette width + margin
+        const dropY = activatorEvent.clientY + delta.y - 60  // offset for toolbar
+
+        const newNode: FlowNode = {
+          id: generateFlowId('node'),
+          type: nodeType,
+          label: meta.label,
+          position: { x: Math.max(0, dropX), y: Math.max(0, dropY) },
+          metrics: { ...DEFAULT_METRICS, ...meta.defaultMetrics },
+          config: {},
+        }
+
+        handleAddNode(newNode)
+        setSelectedNodeId(newNode.id)
+      } else if (data.type === 'canvas-node') {
+        // Repositioning existing node on canvas
+        const nodeId = data.nodeId as string
+        const node = flow.nodes.find((n) => n.id === nodeId)
+        if (node) {
+          handleMoveNode(nodeId, {
+            x: Math.round(node.position.x + delta.x),
+            y: Math.round(node.position.y + delta.y),
+          })
+        }
+      }
+    },
+    [flow.nodes, handleAddNode, handleMoveNode]
+  )
+
   return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
     <div className="h-screen flex flex-col bg-white">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-gray-200 bg-white flex-shrink-0 z-20">
@@ -315,5 +372,6 @@ export default function FlowBuilderPage() {
         )}
       </div>
     </div>
+    </DndContext>
   )
 }
