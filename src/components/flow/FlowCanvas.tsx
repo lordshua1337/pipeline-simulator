@@ -24,6 +24,7 @@ interface FlowCanvasProps {
   onMoveNode: (nodeId: string, position: { x: number; y: number }) => void
   onAddEdge: (edge: FlowEdge) => void
   onDuplicateNode: (nodeId: string) => void
+  externalMousePos?: { x: number; y: number } | null
   trafficMap?: Map<string, number>
 }
 
@@ -40,6 +41,7 @@ export function FlowCanvas({
   onDuplicateNode,
   connectingFrom,
   onSetConnectingFrom,
+  externalMousePos,
   trafficMap,
 }: FlowCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -139,6 +141,7 @@ export function FlowCanvas({
           setDropRef(el)
           ;(canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = el
         }}
+        data-flow-canvas
         className="flex-1 overflow-hidden relative bg-[#FAFAFA] cursor-default"
         style={{
           backgroundImage: 'radial-gradient(circle, #E5E7EB 1px, transparent 1px)',
@@ -168,7 +171,7 @@ export function FlowCanvas({
             selectedEdgeId={selectedEdgeId}
             onSelectEdge={onSelectEdge}
             connectingFrom={connectingFrom}
-            mousePos={mousePos}
+            mousePos={externalMousePos || mousePos}
           />
 
           {nodes.map((node) => (
