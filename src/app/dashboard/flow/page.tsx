@@ -141,6 +141,34 @@ export default function FlowBuilderPage() {
     }))
   }, [])
 
+  const handleInsertNode = useCallback((edgeId: string, position: { x: number; y: number }) => {
+    const edge = flow.edges.find((e) => e.id === edgeId)
+    if (!edge) return
+
+    // Create new custom node at the midpoint
+    const newNode: FlowNode = {
+      id: generateFlowId('node'),
+      type: 'custom',
+      label: 'New Step',
+      position,
+      metrics: { ...DEFAULT_METRICS, conversionRate: 0.8 },
+      config: {},
+    }
+
+    setFlow((prev) => ({
+      ...prev,
+      nodes: [...prev.nodes, newNode],
+      // Remove old edge, add two new edges: source->new and new->target
+      edges: [
+        ...prev.edges.filter((e) => e.id !== edgeId),
+        { id: generateFlowId('edge'), sourceId: edge.sourceId, targetId: newNode.id },
+        { id: generateFlowId('edge'), sourceId: newNode.id, targetId: edge.targetId },
+      ],
+      updatedAt: new Date().toISOString(),
+    }))
+    setSelectedNodeId(newNode.id)
+  }, [flow.edges])
+
   const handleDuplicateNode = useCallback((nodeId: string) => {
     const node = flow.nodes.find((n) => n.id === nodeId)
     if (!node) return
@@ -440,6 +468,7 @@ export default function FlowBuilderPage() {
           onMoveNode={handleMoveNode}
           onAddEdge={handleAddEdge}
           onDuplicateNode={handleDuplicateNode}
+          onInsertNode={handleInsertNode}
           connectingFrom={connectingFrom}
           onSetConnectingFrom={setConnectingFrom}
           externalMousePos={null}

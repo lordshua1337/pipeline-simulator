@@ -83,12 +83,13 @@ interface FlowEdgeLayerProps {
   edges: readonly FlowEdge[]
   selectedEdgeId: string | null
   onSelectEdge: (id: string | null) => void
+  onInsertNode?: (edgeId: string, position: { x: number; y: number }) => void
   connectingFrom: string | null
   mousePos: { x: number; y: number } | null
 }
 
 export function FlowEdgeLayer({
-  nodes, edges, selectedEdgeId, onSelectEdge, connectingFrom, mousePos,
+  nodes, edges, selectedEdgeId, onSelectEdge, onInsertNode, connectingFrom, mousePos,
 }: FlowEdgeLayerProps) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
 
@@ -103,13 +104,30 @@ export function FlowEdgeLayer({
         const path = bezierPath(from, to)
         const isSelected = selectedEdgeId === edge.id
 
+        const mx = (from.x + to.x) / 2
+        const my = (from.y + to.y) / 2
+
         return (
-          <g key={edge.id}>
+          <g key={edge.id} className="group/edge">
             <path d={path} fill="none" stroke="transparent" strokeWidth={16}
               className="pointer-events-auto cursor-pointer" onClick={() => onSelectEdge(edge.id)} />
-            <path d={path} fill="none" stroke={isSelected ? '#3B82F6' : '#94A3B8'}
+            <path d={path} fill="none" stroke={isSelected ? '#3B82F6' : '#CBD5E1'}
               strokeWidth={isSelected ? 2.5 : 1.5} className="transition-colors" />
             <polygon points={arrowPoints(to)} fill={isSelected ? '#3B82F6' : '#94A3B8'} />
+            {/* Insert node button at midpoint */}
+            {onInsertNode && (
+              <g
+                className="pointer-events-auto cursor-pointer opacity-0 group-hover/edge:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onInsertNode(edge.id, { x: mx - 100, y: my - 45 })
+                }}
+              >
+                <circle cx={mx} cy={my} r={10} fill="white" stroke="#CBD5E1" strokeWidth={1.5} />
+                <line x1={mx - 4} y1={my} x2={mx + 4} y2={my} stroke="#6B7280" strokeWidth={1.5} strokeLinecap="round" />
+                <line x1={mx} y1={my - 4} x2={mx} y2={my + 4} stroke="#6B7280" strokeWidth={1.5} strokeLinecap="round" />
+              </g>
+            )}
           </g>
         )
       })}

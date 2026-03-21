@@ -24,6 +24,7 @@ interface FlowCanvasProps {
   onMoveNode: (nodeId: string, position: { x: number; y: number }) => void
   onAddEdge: (edge: FlowEdge) => void
   onDuplicateNode: (nodeId: string) => void
+  onInsertNode: (edgeId: string, position: { x: number; y: number }) => void
   externalMousePos?: { x: number; y: number } | null
   trafficMap?: Map<string, number>
 }
@@ -39,6 +40,7 @@ export function FlowCanvas({
   onMoveNode,
   onAddEdge,
   onDuplicateNode,
+  onInsertNode,
   connectingFrom,
   onSetConnectingFrom,
   externalMousePos,
@@ -93,15 +95,14 @@ export function FlowCanvas({
     [connectingFrom, onSelectNode, onSelectEdge, onSetConnectingFrom, startPan]
   )
 
-  const handleCanvasMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      // Always track mouse for connection preview
+  const handleCanvasPointerMove = useCallback(
+    (e: React.PointerEvent) => {
       if (canvasRef.current) {
         const rect = canvasRef.current.getBoundingClientRect()
         const pos = screenToCanvas(e.clientX, e.clientY, rect)
         setMousePos(pos)
       }
-      onPanMove(e)
+      onPanMove(e as unknown as React.MouseEvent)
     },
     [screenToCanvas, onPanMove]
   )
@@ -130,7 +131,7 @@ export function FlowCanvas({
         }}
         onWheel={handleWheel}
         onMouseDown={handleCanvasMouseDown}
-        onMouseMove={handleCanvasMouseMove}
+        onPointerMove={handleCanvasPointerMove}
         onMouseUp={handleCanvasMouseUp}
       >
         {/* Transformed layer */}
@@ -150,6 +151,7 @@ export function FlowCanvas({
             edges={edges}
             selectedEdgeId={selectedEdgeId}
             onSelectEdge={onSelectEdge}
+            onInsertNode={onInsertNode}
             connectingFrom={connectingFrom}
             mousePos={externalMousePos || mousePos}
           />
