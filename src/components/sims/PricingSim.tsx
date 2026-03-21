@@ -347,7 +347,7 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
                         onChange={(e) => updateVarValue(av.id, field.key, parseFloat(e.target.value) || 0)}
                         step={field.step}
                         className="w-16 px-1.5 py-0.5 text-[11px] font-mono text-right rounded border outline-none focus:ring-1"
-                        style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)', focusRingColor: varDef.color }}
+                        style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
                       />
                       <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{field.suffix}</span>
                     </div>
