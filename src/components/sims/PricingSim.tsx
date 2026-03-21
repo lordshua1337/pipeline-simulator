@@ -141,7 +141,7 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
                           ? 'var(--blue)'
                           : isOptimal
                           ? 'var(--accent)'
-                          : 'rgba(255,255,255,0.08)',
+                          : '#E8E8E4',
                         minHeight: revH > 0 ? 2 : 0,
                       }}
                     />
@@ -151,10 +151,10 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
                       style={{
                         height: `${profH * 2}%`,
                         background: isOptimal
-                          ? 'rgba(16, 185, 129, 0.4)'
+                          ? 'rgba(16, 185, 129, 0.35)'
                           : isCurrent
-                          ? 'rgba(59, 130, 246, 0.4)'
-                          : 'rgba(255,255,255,0.04)',
+                          ? 'rgba(59, 130, 246, 0.35)'
+                          : '#F0F0EC',
                         minHeight: profH > 0 ? 2 : 0,
                       }}
                     />
@@ -174,19 +174,19 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
                   <div
                     className="absolute bottom-full mb-3 px-3 py-2 rounded-lg text-[10px] hidden group-hover:block whitespace-nowrap z-10 pointer-events-none"
                     style={{
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border-light)',
-                      color: 'var(--text)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                      background: '#1A1A1A',
+                      border: 'none',
+                      color: '#fff',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                     }}
                   >
                     <div style={{ fontFamily: "'SF Mono', monospace" }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Rev</span> {fmt(a.revenue)}
-                      <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>|</span>
-                      <span style={{ color: 'var(--text-muted)' }}>Profit</span>{' '}
-                      <span style={{ color: a.profit > 0 ? 'var(--accent)' : 'var(--red)' }}>{fmt(a.profit)}</span>
-                      <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>|</span>
-                      <span style={{ color: 'var(--text-muted)' }}>Vol</span> {a.volume.toLocaleString()}
+                      <span style={{ color: '#999' }}>Rev</span> {fmt(a.revenue)}
+                      <span style={{ color: '#555', margin: '0 6px' }}>|</span>
+                      <span style={{ color: '#999' }}>Profit</span>{' '}
+                      <span style={{ color: a.profit > 0 ? '#34D399' : '#F87171' }}>{fmt(a.profit)}</span>
+                      <span style={{ color: '#555', margin: '0 6px' }}>|</span>
+                      <span style={{ color: '#999' }}>Vol</span> {a.volume.toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -197,8 +197,8 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
           {/* Legend */}
           <div className="flex items-center gap-5 mt-4 justify-center">
             {[
-              { label: 'Revenue', color: 'rgba(255,255,255,0.12)' },
-              { label: 'Profit', color: 'rgba(255,255,255,0.06)' },
+              { label: 'Revenue', color: '#E8E8E4' },
+              { label: 'Profit', color: '#F0F0EC' },
               { label: 'Current', color: 'var(--blue)' },
               { label: 'Optimal', color: 'var(--accent)' },
             ].map((l) => (
