@@ -63,13 +63,15 @@ export function FlowCanvas({
 
   const { setNodeRef: setDropRef } = useDroppable({ id: 'flow-canvas' })
 
-  // Port handlers -- called directly by BaseFlowNode
-  const handlePortDown = useCallback((nodeId: string) => {
-    onSetConnectingFrom(nodeId)
-  }, [onSetConnectingFrom])
+  // Port click handler: portUp tries to complete, portDown starts new
+  const completedRef = useRef(false)
 
   const handlePortUp = useCallback((nodeId: string) => {
-    if (!connectingFrom || connectingFrom === nodeId) return
+    if (!connectingFrom || connectingFrom === nodeId) {
+      completedRef.current = false
+      return
+    }
+    // Complete the connection
     const edgeExists = edges.some(
       (e) => (e.sourceId === connectingFrom && e.targetId === nodeId) ||
              (e.sourceId === nodeId && e.targetId === connectingFrom)
@@ -79,7 +81,17 @@ export function FlowCanvas({
     }
     onSetConnectingFrom(null)
     setMousePos(null)
+    completedRef.current = true
   }, [connectingFrom, edges, onAddEdge, onSetConnectingFrom])
+
+  const handlePortDown = useCallback((nodeId: string) => {
+    // Don't start a new connection if we just completed one
+    if (completedRef.current) {
+      completedRef.current = false
+      return
+    }
+    onSetConnectingFrom(nodeId)
+  }, [onSetConnectingFrom])
 
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {

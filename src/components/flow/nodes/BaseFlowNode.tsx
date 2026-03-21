@@ -112,19 +112,17 @@ export function BaseFlowNode({ node, selected, onSelect, onDuplicate, onPortDown
         return (
           <div
             key={side}
-            className="absolute w-4 h-4 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 hover:scale-150 transition-all z-30 cursor-crosshair"
+            className="absolute w-5 h-5 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 hover:scale-125 transition-all z-30 cursor-crosshair"
             style={pos}
-            data-port="port"
-            data-port-side={side}
-            data-node-id={node.id}
-            onPointerDown={(e) => {
+            onClick={(e) => {
               e.stopPropagation()
               e.preventDefault()
+              // portUp tries to complete first, then portDown starts new
+              onPortUp?.(node.id)
               onPortDown?.(node.id)
             }}
-            onPointerUp={(e) => {
+            onPointerDown={(e) => {
               e.stopPropagation()
-              onPortUp?.(node.id)
             }}
           />
         )

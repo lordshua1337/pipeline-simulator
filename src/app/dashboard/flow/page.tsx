@@ -109,7 +109,7 @@ export default function FlowBuilderPage() {
     return map
   }, [simResult])
 
-  // Connection handled entirely inside FlowCanvas via props
+  // Connections handled inside FlowCanvas via portDown/portUp callbacks + bump-connect on drag end
 
   const handleAddNode = useCallback((node: FlowNode) => {
     setFlow((prev) => ({
