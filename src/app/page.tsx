@@ -23,6 +23,15 @@ const MARIO_SKIN = '#FC9838'
 const MARIO_BROWN = '#6C3400'
 const CLOUD_WHITE = '#FCFCFC'
 
+interface HitBlock {
+  x: number
+  y: number
+  hitTime: number
+  type: 'brick' | 'question'
+  popped: boolean
+  coinY: number
+}
+
 interface GameState {
   x: number
   y: number
@@ -33,6 +42,7 @@ interface GameState {
   frame: number
   entering: boolean
   enterProgress: number
+  blocks: HitBlock[]
 }
 
 // NES aspect ratio scaled to fill screen
@@ -148,22 +158,46 @@ function playJumpSound(audioCtx: AudioContext) {
 }
 
 function playPipeSound(audioCtx: AudioContext) {
-  // The classic descending "womp womp womp" pipe entry
-  const notes = [523, 440, 349, 294, 247, 196, 165]
-  let t = audioCtx.currentTime
-  for (const freq of notes) {
-    const osc = audioCtx.createOscillator()
-    const gain = audioCtx.createGain()
-    osc.type = 'square'
-    osc.frequency.value = freq
-    gain.gain.setValueAtTime(0.1, t)
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12)
-    osc.connect(gain)
-    gain.connect(audioCtx.destination)
-    osc.start(t)
-    osc.stop(t + 0.13)
-    t += 0.1
-  }
+  // Deep descending warp pipe sound
+  const osc = audioCtx.createOscillator()
+  const gain = audioCtx.createGain()
+  osc.type = 'square'
+  osc.frequency.setValueAtTime(600, audioCtx.currentTime)
+  osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.8)
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime)
+  gain.gain.setValueAtTime(0.12, audioCtx.currentTime + 0.6)
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0)
+  osc.connect(gain)
+  gain.connect(audioCtx.destination)
+  osc.start()
+  osc.stop(audioCtx.currentTime + 1.0)
+
+  // Second voice for thickness
+  const osc2 = audioCtx.createOscillator()
+  const gain2 = audioCtx.createGain()
+  osc2.type = 'triangle'
+  osc2.frequency.setValueAtTime(300, audioCtx.currentTime)
+  osc2.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.9)
+  gain2.gain.setValueAtTime(0.08, audioCtx.currentTime)
+  gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0)
+  osc2.connect(gain2)
+  gain2.connect(audioCtx.destination)
+  osc2.start()
+  osc2.stop(audioCtx.currentTime + 1.0)
+}
+
+function playBumpSound(audioCtx: AudioContext) {
+  const osc = audioCtx.createOscillator()
+  const gain = audioCtx.createGain()
+  osc.type = 'square'
+  osc.frequency.setValueAtTime(200, audioCtx.currentTime)
+  osc.frequency.setValueAtTime(260, audioCtx.currentTime + 0.03)
+  gain.gain.setValueAtTime(0.08, audioCtx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1)
+  osc.connect(gain)
+  gain.connect(audioCtx.destination)
+  osc.start()
+  osc.stop(audioCtx.currentTime + 0.1)
 }
 
 function playCoinSound(audioCtx: AudioContext) {
@@ -223,7 +257,7 @@ export default function Home() {
   const gameRef = useRef<GameState>({
     x: 30, y: dimsRef.current.GROUND_Y - 39, vx: 0, vy: 0,
     grounded: true, facing: 1, frame: 0,
-    entering: false, enterProgress: 0,
+    entering: false, enterProgress: 0, blocks: [],
   })
   const keysRef = useRef<Set<string>>(new Set())
   const audioStarted = useRef(false)
@@ -375,40 +409,132 @@ export default function Home() {
         ctx.fillRect(gx + 8, GROUND_Y + 14, TILE - 4, 2)
       }
 
-      // "PIPELINE PRO" in brick blocks
-      const text = 'PIPELINE PRO'
-      const blockSize = TILE
-      const textWidth = text.length * (blockSize + 2)
-      const textStartX = (W - textWidth) / 2
-      const brickY = GROUND_Y - TILE * 6
+      // MASSIVE "PIPELINE PRO" headline
+      const titleY = H * 0.2
+      ctx.textAlign = 'center'
 
-      for (let i = 0; i < text.length; i++) {
-        const ch = text[i]
-        if (ch === ' ') continue
-        const bx = textStartX + i * (blockSize + 2)
+      // PIPELINE in brick style
+      ctx.font = `bold ${Math.min(W * 0.1, 90)}px monospace`
+      ctx.fillStyle = BRICK
+      ctx.fillText('PIPELINE', W / 2, titleY)
+      // Outline
+      ctx.strokeStyle = '#A03000'
+      ctx.lineWidth = 2
+      ctx.strokeText('PIPELINE', W / 2, titleY)
 
-        // Question block style for vowels, brick for consonants
-        const isSpecial = 'AEIOU'.includes(ch)
-        if (isSpecial) {
+      // PRO in golden question block style
+      ctx.font = `bold ${Math.min(W * 0.12, 110)}px monospace`
+      ctx.fillStyle = '#FFB830'
+      ctx.fillText('PRO', W / 2, titleY + Math.min(W * 0.1, 90) + 10)
+      ctx.strokeStyle = '#C07000'
+      ctx.lineWidth = 2
+      ctx.strokeText('PRO', W / 2, titleY + Math.min(W * 0.1, 90) + 10)
+
+      // Subtitle
+      ctx.font = '14px monospace'
+      ctx.fillStyle = '#FFF'
+      ctx.fillText('WORLD 1-1', W / 2, titleY + Math.min(W * 0.1, 90) + 40)
+      ctx.textAlign = 'left'
+
+      // Hittable blocks (scattered near ground for Mario to bump)
+      // Initialize blocks once
+      if (g.blocks.length === 0) {
+        const blockPositions = [
+          { x: W * 0.15, type: 'question' as const },
+          { x: W * 0.25, type: 'brick' as const },
+          { x: W * 0.35, type: 'question' as const },
+          { x: W * 0.65, type: 'brick' as const },
+          { x: W * 0.75, type: 'question' as const },
+          { x: W * 0.85, type: 'brick' as const },
+        ]
+        g.blocks = blockPositions.map((bp) => ({
+          x: bp.x,
+          y: GROUND_Y - TILE * 5,
+          hitTime: 0,
+          type: bp.type,
+          popped: false,
+          coinY: 0,
+        }))
+      }
+
+      // Check Mario head-butting blocks
+      for (const block of g.blocks) {
+        if (block.popped) continue
+        const marioHead = g.y
+        const marioMidX = g.x + 18
+        if (g.vy < 0 && marioMidX > block.x && marioMidX < block.x + TILE &&
+            marioHead <= block.y + TILE && marioHead > block.y) {
+          block.hitTime = Date.now()
+          block.popped = true
+          block.coinY = block.y - 10
+          g.vy = 1 // bounce off
+          if (audioCtxRef.current) {
+            playCoinSound(audioCtxRef.current)
+            playBumpSound(audioCtxRef.current)
+          }
+        }
+      }
+
+      // Draw blocks
+      for (const block of g.blocks) {
+        const elapsed = block.hitTime > 0 ? Date.now() - block.hitTime : 0
+        const bounceY = elapsed > 0 && elapsed < 150 ? -Math.sin((elapsed / 150) * Math.PI) * 6 : 0
+
+        if (block.type === 'question' && !block.popped) {
           ctx.fillStyle = '#FFB830'
-          ctx.fillRect(bx, brickY, blockSize, blockSize)
+          ctx.fillRect(block.x, block.y + bounceY, TILE, TILE)
           ctx.strokeStyle = '#C07000'
           ctx.lineWidth = 1
-          ctx.strokeRect(bx + 0.5, brickY + 0.5, blockSize - 1, blockSize - 1)
-        } else {
-          ctx.fillStyle = BRICK
-          ctx.fillRect(bx, brickY, blockSize, blockSize)
-          ctx.strokeStyle = '#A03000'
+          ctx.strokeRect(block.x + 0.5, block.y + bounceY + 0.5, TILE - 1, TILE - 1)
+          ctx.fillStyle = '#FFF'
+          ctx.font = 'bold 10px monospace'
+          ctx.textAlign = 'center'
+          ctx.fillText('?', block.x + TILE / 2, block.y + bounceY + 12)
+          ctx.textAlign = 'left'
+        } else if (block.type === 'question' && block.popped) {
+          ctx.fillStyle = '#8B7355'
+          ctx.fillRect(block.x, block.y, TILE, TILE)
+          ctx.strokeStyle = '#6B5335'
           ctx.lineWidth = 1
-          ctx.strokeRect(bx + 0.5, brickY + 0.5, blockSize - 1, blockSize - 1)
+          ctx.strokeRect(block.x + 0.5, block.y + 0.5, TILE - 1, TILE - 1)
+        } else {
+          ctx.fillStyle = block.popped ? '#A03000' : BRICK
+          ctx.fillRect(block.x, block.y + bounceY, TILE, TILE)
+          ctx.strokeStyle = '#802000'
+          ctx.lineWidth = 1
+          ctx.strokeRect(block.x + 0.5, block.y + bounceY + 0.5, TILE - 1, TILE - 1)
         }
 
-        // Letter on each block
-        ctx.fillStyle = '#FFF'
-        ctx.font = 'bold 10px monospace'
-        ctx.textAlign = 'center'
-        ctx.fillText(ch, bx + blockSize / 2, brickY + blockSize - 4)
-        ctx.textAlign = 'left'
+        // Coin animation
+        if (block.popped && elapsed < 600) {
+          const coinProgress = elapsed / 600
+          const coinY = block.y - 10 - coinProgress * 40
+          const coinAlpha = 1 - coinProgress
+          ctx.globalAlpha = coinAlpha
+          ctx.fillStyle = '#FFD700'
+          ctx.beginPath()
+          ctx.arc(block.x + TILE / 2, coinY, 5, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.fillStyle = '#FFA500'
+          ctx.beginPath()
+          ctx.arc(block.x + TILE / 2, coinY, 3, 0, Math.PI * 2)
+          ctx.fill()
+          // +100 text
+          ctx.fillStyle = '#FFF'
+          ctx.font = 'bold 8px monospace'
+          ctx.textAlign = 'center'
+          ctx.fillText('+100', block.x + TILE / 2, coinY - 8)
+          ctx.textAlign = 'left'
+          ctx.globalAlpha = 1
+        }
+      }
+
+      // Block collision (stand on top)
+      for (const block of g.blocks) {
+        if (g.x + 30 > block.x && g.x + 6 < block.x + TILE &&
+            g.y + 39 >= block.y && g.y + 39 - g.vy < block.y + 2 && g.vy >= 0) {
+          g.y = block.y - 39; g.vy = 0; g.grounded = true
+        }
       }
 
       // Pipe (centered)
@@ -444,14 +570,11 @@ export default function Home() {
         drawPixelMario(ctx, g.x, g.y, g.facing, g.vx !== 0 ? g.frame : 0)
       }
 
-      // HUD
-      ctx.fillStyle = '#FFF'
-      ctx.font = 'bold 16px monospace'
-      ctx.textAlign = 'center'
-      ctx.fillText('PIPELINE SIMULATOR', W / 2, 30)
+      // HUD -- bottom area
       ctx.font = '10px monospace'
-      ctx.fillStyle = '#FFD870'
-      ctx.fillText('WORLD 1-1', W / 2, 46)
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'
+      ctx.textAlign = 'center'
+      ctx.fillText('RUN TO THE PIPE  /  PRESS DOWN TO ENTER', W / 2, H - 12)
       ctx.textAlign = 'left'
 
       raf = requestAnimationFrame(loop)
