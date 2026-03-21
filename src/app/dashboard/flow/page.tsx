@@ -89,6 +89,8 @@ export default function FlowBuilderPage() {
   const [isSimulating, setIsSimulating] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [editingName, setEditingName] = useState(false)
+  const [simWarnings, setSimWarnings] = useState<string[]>([])
+  const [showHelper, setShowHelper] = useState(false)
   const [activeDragType, setActiveDragType] = useState<FlowNodeType | null>(null)
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
 
@@ -206,17 +208,59 @@ export default function FlowBuilderPage() {
   }, [flow])
 
   const handleRunSimulation = useCallback(() => {
-    if (flow.nodes.length === 0) return
-    setIsSimulating(true)
+    const warnings: string[] = []
 
-    // Run in next tick to allow UI to update
+    if (flow.nodes.length === 0) {
+      warnings.push('Add at least one node to the canvas to simulate.')
+      setSimWarnings(warnings)
+      setShowHelper(true)
+      return
+    }
+
+    // Check for traffic sources (root nodes with traffic)
+    const hasTraffic = flow.nodes.some((n) => n.type === 'traffic_source' && n.metrics.trafficVolume > 0)
+    if (!hasTraffic) {
+      warnings.push('No traffic source with volume > 0. Add a Traffic Source node and set its traffic volume.')
+    }
+
+    // Check for disconnected nodes
+    const connectedIds = new Set<string>()
+    for (const e of flow.edges) {
+      connectedIds.add(e.sourceId)
+      connectedIds.add(e.targetId)
+    }
+    const disconnected = flow.nodes.filter((n) => !connectedIds.has(n.id))
+    if (disconnected.length > 0 && flow.nodes.length > 1) {
+      warnings.push(`${disconnected.length} node${disconnected.length > 1 ? 's are' : ' is'} not connected: ${disconnected.map((n) => n.label).join(', ')}`)
+    }
+
+    // Check for revenue nodes
+    const hasRevenue = flow.nodes.some((n) => n.metrics.revenuePerSale > 0)
+    if (!hasRevenue) {
+      warnings.push('No node has revenue set. Set "Revenue Per Sale" on at least one node (usually Checkout or Upsell).')
+    }
+
+    // Check for zero conversion rates
+    const zeroConv = flow.nodes.filter((n) => n.metrics.conversionRate === 0 && n.type !== 'traffic_source')
+    if (zeroConv.length > 0) {
+      warnings.push(`${zeroConv.length} node${zeroConv.length > 1 ? 's have' : ' has'} 0% conversion: ${zeroConv.map((n) => n.label).join(', ')}`)
+    }
+
+    if (warnings.length > 0) {
+      setSimWarnings(warnings)
+      setShowHelper(true)
+    } else {
+      setShowHelper(false)
+      setSimWarnings([])
+    }
+
+    // Run simulation even with warnings (but show them)
+    setIsSimulating(true)
     setTimeout(() => {
       const result = simulateFlow(flow)
       setSimResult(result)
-
       const mc = monteCarloFlow(flow, 1000)
       setMcResult(mc)
-
       setIsSimulating(false)
     }, 50)
   }, [flow])
@@ -447,6 +491,24 @@ export default function FlowBuilderPage() {
           </button>
         </div>
       </div>
+
+      {/* Simulation helper */}
+      {showHelper && simWarnings.length > 0 && (
+        <div className="px-4 py-2 flex items-start gap-3" style={{ background: '#FEF3C7', borderBottom: '1px solid #FDE68A' }}>
+          <span className="text-amber-600 text-sm mt-0.5">!</span>
+          <div className="flex-1">
+            <div className="text-xs font-medium text-amber-800 mb-1">Simulation ran with issues:</div>
+            <div className="space-y-0.5">
+              {simWarnings.map((w, i) => (
+                <div key={i} className="text-[11px] text-amber-700">{w}</div>
+              ))}
+            </div>
+          </div>
+          <button onClick={() => setShowHelper(false)} className="text-amber-400 hover:text-amber-600 text-xs mt-0.5">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Click-away for templates */}
       {showTemplates && (

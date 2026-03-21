@@ -1,4 +1,4 @@
-// Flow Builder -- Pre-built Templates
+// Flow Builder -- Pre-built Templates (vertical layout)
 
 import type { FlowTemplate, FlowNode, DEFAULT_METRICS } from './flow-types'
 
@@ -13,28 +13,32 @@ const m = (overrides: Partial<typeof DEFAULT_METRICS>) => ({
   ...overrides,
 })
 
+// Center X, stack vertically with 140px spacing
+const CX = 200
+const GAP = 140
+
 function node(
   type: FlowNode['type'],
   label: string,
-  x: number,
-  y: number,
-  metrics: Partial<typeof DEFAULT_METRICS> = {}
+  row: number,
+  metrics: Partial<typeof DEFAULT_METRICS> = {},
+  xOffset: number = 0
 ): Omit<FlowNode, 'id'> {
-  return { type, label, position: { x, y }, metrics: m(metrics), config: {} }
+  return { type, label, position: { x: CX + xOffset, y: 40 + row * GAP }, metrics: m(metrics), config: {} }
 }
 
 export const flowTemplates: readonly FlowTemplate[] = [
   {
     id: 'simple-funnel',
     name: 'Simple Funnel',
-    description: 'Facebook Ads to landing page to checkout. The classic direct-response funnel.',
+    description: 'Ads to landing page to checkout. The classic direct-response funnel.',
     category: 'Marketing',
     icon: 'Zap',
     nodes: [
-      node('traffic_source', 'Facebook Ads', 80, 200, { trafficVolume: 5000, costPerClick: 1.25 }),
-      node('landing_page', 'Landing Page', 380, 200, { conversionRate: 0.35 }),
-      node('checkout', 'Checkout', 680, 200, { conversionRate: 0.60, revenuePerSale: 97 }),
-      node('thank_you', 'Thank You', 980, 200, { conversionRate: 1.0 }),
+      node('traffic_source', 'Facebook Ads', 0, { trafficVolume: 5000, costPerClick: 1.25 }),
+      node('landing_page', 'Landing Page', 1, { conversionRate: 0.35 }),
+      node('checkout', 'Checkout', 2, { conversionRate: 0.60, revenuePerSale: 97 }),
+      node('thank_you', 'Thank You', 3, { conversionRate: 1.0 }),
     ],
     edges: [
       { sourceIndex: 0, targetIndex: 1 },
@@ -45,17 +49,17 @@ export const flowTemplates: readonly FlowTemplate[] = [
   {
     id: 'webinar-funnel',
     name: 'Webinar Funnel',
-    description: 'Drive traffic to a registration page, nurture with emails, convert at the webinar.',
+    description: 'Drive traffic to registration, nurture with emails, convert at webinar pitch.',
     category: 'Marketing',
     icon: 'Video',
     nodes: [
-      node('traffic_source', 'Paid Traffic', 80, 200, { trafficVolume: 8000, costPerClick: 2.00 }),
-      node('landing_page', 'Registration Page', 380, 200, { conversionRate: 0.40 }),
-      node('email_sequence', 'Reminder Emails', 680, 120, { conversionRate: 0.65 }),
-      node('sales_page', 'Webinar / Pitch', 980, 200, { conversionRate: 0.12 }),
-      node('checkout', 'Checkout', 1280, 200, { conversionRate: 0.70, revenuePerSale: 497 }),
-      node('upsell', 'Upsell Offer', 1580, 120, { conversionRate: 0.25, revenuePerSale: 197 }),
-      node('thank_you', 'Thank You', 1580, 320, { conversionRate: 1.0 }),
+      node('traffic_source', 'Paid Traffic', 0, { trafficVolume: 8000, costPerClick: 2.00 }),
+      node('landing_page', 'Registration Page', 1, { conversionRate: 0.40 }),
+      node('email_sequence', 'Reminder Emails', 2, { conversionRate: 0.65 }),
+      node('sales_page', 'Webinar Pitch', 3, { conversionRate: 0.12 }),
+      node('checkout', 'Checkout', 4, { conversionRate: 0.70, revenuePerSale: 497 }),
+      node('upsell', 'Upsell Offer', 5, { conversionRate: 0.25, revenuePerSale: 197 }),
+      node('thank_you', 'Thank You', 6, { conversionRate: 1.0 }),
     ],
     edges: [
       { sourceIndex: 0, targetIndex: 1 },
@@ -63,22 +67,22 @@ export const flowTemplates: readonly FlowTemplate[] = [
       { sourceIndex: 2, targetIndex: 3 },
       { sourceIndex: 3, targetIndex: 4 },
       { sourceIndex: 4, targetIndex: 5 },
-      { sourceIndex: 4, targetIndex: 6 },
+      { sourceIndex: 5, targetIndex: 6 },
     ],
   },
   {
     id: 'free-trial',
     name: 'Free Trial to Paid',
-    description: 'SaaS trial funnel: sign up, onboard with emails, convert to paid plan.',
+    description: 'SaaS trial funnel: sign up, onboard, convert to paid.',
     category: 'SaaS',
     icon: 'CreditCard',
     nodes: [
-      node('traffic_source', 'Organic + Ads', 80, 200, { trafficVolume: 10000, costPerClick: 0.80 }),
-      node('landing_page', 'Product Page', 380, 200, { conversionRate: 0.20 }),
-      node('opt_in_form', 'Free Trial Signup', 680, 200, { conversionRate: 0.55 }),
-      node('email_sequence', 'Onboarding Drip', 980, 200, { conversionRate: 0.40 }),
-      node('sales_page', 'Upgrade Page', 1280, 200, { conversionRate: 0.15 }),
-      node('checkout', 'Payment', 1580, 200, { conversionRate: 0.75, revenuePerSale: 49 }),
+      node('traffic_source', 'Organic + Ads', 0, { trafficVolume: 10000, costPerClick: 0.80 }),
+      node('landing_page', 'Product Page', 1, { conversionRate: 0.20 }),
+      node('opt_in_form', 'Free Trial Signup', 2, { conversionRate: 0.55 }),
+      node('email_sequence', 'Onboarding Drip', 3, { conversionRate: 0.40 }),
+      node('sales_page', 'Upgrade Page', 4, { conversionRate: 0.15 }),
+      node('checkout', 'Payment', 5, { conversionRate: 0.75, revenuePerSale: 49 }),
     ],
     edges: [
       { sourceIndex: 0, targetIndex: 1 },
@@ -91,17 +95,17 @@ export const flowTemplates: readonly FlowTemplate[] = [
   {
     id: 'ecommerce-launch',
     name: 'E-commerce Launch',
-    description: 'Multi-channel traffic into a product page with cart, checkout, and upsell.',
+    description: 'Multi-channel traffic into product page with cart and upsell.',
     category: 'E-commerce',
     icon: 'ShoppingCart',
     nodes: [
-      node('traffic_source', 'Google Ads', 80, 100, { trafficVolume: 6000, costPerClick: 1.80 }),
-      node('traffic_source', 'Instagram Ads', 80, 280, { trafficVolume: 4000, costPerClick: 0.90 }),
-      node('traffic_source', 'Email List', 80, 460, { trafficVolume: 3000, costPerClick: 0 }),
-      node('landing_page', 'Product Page', 430, 280, { conversionRate: 0.25 }),
-      node('checkout', 'Cart + Checkout', 730, 280, { conversionRate: 0.55, revenuePerSale: 65 }),
-      node('upsell', 'Order Bump', 1030, 180, { conversionRate: 0.35, revenuePerSale: 29 }),
-      node('thank_you', 'Confirmation', 1030, 380, { conversionRate: 1.0 }),
+      node('traffic_source', 'Google Ads', 0, { trafficVolume: 6000, costPerClick: 1.80 }, -150),
+      node('traffic_source', 'Instagram Ads', 0, { trafficVolume: 4000, costPerClick: 0.90 }),
+      node('traffic_source', 'Email List', 0, { trafficVolume: 3000, costPerClick: 0 }, 150),
+      node('landing_page', 'Product Page', 1, { conversionRate: 0.25 }),
+      node('checkout', 'Cart + Checkout', 2, { conversionRate: 0.55, revenuePerSale: 65 }),
+      node('upsell', 'Order Bump', 3, { conversionRate: 0.35, revenuePerSale: 29 }),
+      node('thank_you', 'Confirmation', 4, { conversionRate: 1.0 }),
     ],
     edges: [
       { sourceIndex: 0, targetIndex: 3 },
@@ -109,22 +113,139 @@ export const flowTemplates: readonly FlowTemplate[] = [
       { sourceIndex: 2, targetIndex: 3 },
       { sourceIndex: 3, targetIndex: 4 },
       { sourceIndex: 4, targetIndex: 5 },
-      { sourceIndex: 4, targetIndex: 6 },
+      { sourceIndex: 5, targetIndex: 6 },
     ],
   },
   {
     id: 'content-marketing',
     name: 'Content Marketing',
-    description: 'Blog traffic to lead magnet to email nurture to sale. The long game.',
+    description: 'Blog traffic to lead magnet to email nurture to sale.',
     category: 'Marketing',
     icon: 'BookOpen',
     nodes: [
-      node('traffic_source', 'SEO / Blog', 80, 200, { trafficVolume: 15000, costPerClick: 0 }),
-      node('landing_page', 'Blog Post', 380, 200, { conversionRate: 0.45 }),
-      node('opt_in_form', 'Lead Magnet', 680, 200, { conversionRate: 0.18 }),
-      node('email_sequence', 'Nurture Sequence', 980, 200, { conversionRate: 0.25 }),
-      node('sales_page', 'Sales Page', 1280, 200, { conversionRate: 0.06 }),
-      node('checkout', 'Checkout', 1580, 200, { conversionRate: 0.65, revenuePerSale: 197 }),
+      node('traffic_source', 'SEO / Blog', 0, { trafficVolume: 15000, costPerClick: 0 }),
+      node('landing_page', 'Blog Post', 1, { conversionRate: 0.45 }),
+      node('opt_in_form', 'Lead Magnet', 2, { conversionRate: 0.18 }),
+      node('email_sequence', 'Nurture Sequence', 3, { conversionRate: 0.25 }),
+      node('sales_page', 'Sales Page', 4, { conversionRate: 0.06 }),
+      node('checkout', 'Checkout', 5, { conversionRate: 0.65, revenuePerSale: 197 }),
+    ],
+    edges: [
+      { sourceIndex: 0, targetIndex: 1 },
+      { sourceIndex: 1, targetIndex: 2 },
+      { sourceIndex: 2, targetIndex: 3 },
+      { sourceIndex: 3, targetIndex: 4 },
+      { sourceIndex: 4, targetIndex: 5 },
+    ],
+  },
+  {
+    id: 'agency-pipeline',
+    name: 'Agency Sales Pipeline',
+    description: 'Cold outreach to discovery call to proposal to close.',
+    category: 'Services',
+    icon: 'Briefcase',
+    nodes: [
+      node('traffic_source', 'Cold Outreach', 0, { trafficVolume: 500, costPerClick: 0 }),
+      node('opt_in_form', 'Reply / Interest', 1, { conversionRate: 0.08 }),
+      node('sales_page', 'Discovery Call', 2, { conversionRate: 0.60 }),
+      node('custom', 'Proposal Sent', 3, { conversionRate: 0.50 }),
+      node('checkout', 'Contract Signed', 4, { conversionRate: 0.40, revenuePerSale: 5000 }),
+      node('email_sequence', 'Onboarding', 5, { conversionRate: 0.95 }),
+    ],
+    edges: [
+      { sourceIndex: 0, targetIndex: 1 },
+      { sourceIndex: 1, targetIndex: 2 },
+      { sourceIndex: 2, targetIndex: 3 },
+      { sourceIndex: 3, targetIndex: 4 },
+      { sourceIndex: 4, targetIndex: 5 },
+    ],
+  },
+  {
+    id: 'lead-gen',
+    name: 'Lead Generation',
+    description: 'Capture leads, score them, route to sales or nurture.',
+    category: 'B2B',
+    icon: 'Target',
+    nodes: [
+      node('traffic_source', 'LinkedIn Ads', 0, { trafficVolume: 3000, costPerClick: 4.50 }),
+      node('landing_page', 'Whitepaper Landing', 1, { conversionRate: 0.30 }),
+      node('opt_in_form', 'Gated Download', 2, { conversionRate: 0.65 }),
+      node('custom', 'Lead Scoring', 3, { conversionRate: 0.40 }),
+      node('email_sequence', 'Nurture (Low Score)', 4, { conversionRate: 0.10 }, -150),
+      node('sales_page', 'Sales Demo (High Score)', 4, { conversionRate: 0.35 }, 150),
+      node('checkout', 'Close', 5, { conversionRate: 0.50, revenuePerSale: 2000 }),
+    ],
+    edges: [
+      { sourceIndex: 0, targetIndex: 1 },
+      { sourceIndex: 1, targetIndex: 2 },
+      { sourceIndex: 2, targetIndex: 3 },
+      { sourceIndex: 3, targetIndex: 4 },
+      { sourceIndex: 3, targetIndex: 5 },
+      { sourceIndex: 4, targetIndex: 6 },
+      { sourceIndex: 5, targetIndex: 6 },
+    ],
+  },
+  {
+    id: 'membership',
+    name: 'Membership / Community',
+    description: 'Free content to paid community with retention loop.',
+    category: 'Creator',
+    icon: 'Users',
+    nodes: [
+      node('traffic_source', 'YouTube / Podcast', 0, { trafficVolume: 20000, costPerClick: 0 }),
+      node('landing_page', 'Free Content Hub', 1, { conversionRate: 0.30 }),
+      node('opt_in_form', 'Email Capture', 2, { conversionRate: 0.20 }),
+      node('email_sequence', 'Value Series', 3, { conversionRate: 0.35 }),
+      node('sales_page', 'Membership Pitch', 4, { conversionRate: 0.08 }),
+      node('checkout', 'Join Community', 5, { conversionRate: 0.70, revenuePerSale: 29 }),
+      node('thank_you', 'Welcome + Onboard', 6, { conversionRate: 1.0 }),
+    ],
+    edges: [
+      { sourceIndex: 0, targetIndex: 1 },
+      { sourceIndex: 1, targetIndex: 2 },
+      { sourceIndex: 2, targetIndex: 3 },
+      { sourceIndex: 3, targetIndex: 4 },
+      { sourceIndex: 4, targetIndex: 5 },
+      { sourceIndex: 5, targetIndex: 6 },
+    ],
+  },
+  {
+    id: 'app-launch',
+    name: 'Mobile App Launch',
+    description: 'App store traffic to install to activation to subscription.',
+    category: 'Mobile',
+    icon: 'Smartphone',
+    nodes: [
+      node('traffic_source', 'App Store Ads', 0, { trafficVolume: 25000, costPerClick: 0.50 }),
+      node('landing_page', 'App Store Page', 1, { conversionRate: 0.15 }),
+      node('custom', 'Install', 2, { conversionRate: 0.80 }),
+      node('custom', 'Activation (Day 1)', 3, { conversionRate: 0.40 }),
+      node('email_sequence', 'Push Notifications', 4, { conversionRate: 0.60 }),
+      node('sales_page', 'Paywall', 5, { conversionRate: 0.05 }),
+      node('checkout', 'Subscribe', 6, { conversionRate: 0.75, revenuePerSale: 9.99 }),
+    ],
+    edges: [
+      { sourceIndex: 0, targetIndex: 1 },
+      { sourceIndex: 1, targetIndex: 2 },
+      { sourceIndex: 2, targetIndex: 3 },
+      { sourceIndex: 3, targetIndex: 4 },
+      { sourceIndex: 4, targetIndex: 5 },
+      { sourceIndex: 5, targetIndex: 6 },
+    ],
+  },
+  {
+    id: 'real-estate',
+    name: 'Real Estate Lead Flow',
+    description: 'Property ad to listing page to showing to close.',
+    category: 'Real Estate',
+    icon: 'Home',
+    nodes: [
+      node('traffic_source', 'Zillow / Facebook', 0, { trafficVolume: 2000, costPerClick: 3.00 }),
+      node('landing_page', 'Property Listing', 1, { conversionRate: 0.25 }),
+      node('opt_in_form', 'Schedule Showing', 2, { conversionRate: 0.35 }),
+      node('custom', 'Showing / Tour', 3, { conversionRate: 0.60 }),
+      node('custom', 'Offer Made', 4, { conversionRate: 0.30 }),
+      node('checkout', 'Close', 5, { conversionRate: 0.50, revenuePerSale: 12000 }),
     ],
     edges: [
       { sourceIndex: 0, targetIndex: 1 },
@@ -137,7 +258,7 @@ export const flowTemplates: readonly FlowTemplate[] = [
   {
     id: 'custom',
     name: 'Custom Flow',
-    description: 'Start from a blank canvas. Build your pipeline from scratch.',
+    description: 'Start from a blank canvas.',
     category: 'Custom',
     icon: 'Puzzle',
     nodes: [],
