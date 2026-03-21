@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Trash2, Copy, Archive } from 'lucide-react'
+import { Plus, Trash2, Copy, Archive, Workflow, GitBranch, FormInput } from 'lucide-react'
 import { PIPELINE_TEMPLATES } from '@/lib/templates'
 import {
   loadState,
@@ -14,10 +14,14 @@ import {
 } from '@/lib/state'
 import type { Pipeline, Stage, Item } from '@/lib/types'
 import type { AppState } from '@/lib/state'
+import { FormAnalyzer } from '@/components/flow/FormAnalyzer'
+
+type DashboardTab = 'pipelines' | 'flow' | 'forms'
 
 export default function DashboardPage() {
   const [state, setState] = useState<AppState>({ pipelines: [], stages: [], items: [], history: [] })
   const [showCreate, setShowCreate] = useState(false)
+  const [activeTab, setActiveTab] = useState<DashboardTab>('pipelines')
 
   useEffect(() => {
     setState(loadState())
@@ -84,8 +88,63 @@ export default function DashboardPage() {
 
   const pipelines = state.pipelines.filter((p) => p.status !== 'archived')
 
+  const tabs: { id: DashboardTab; label: string; icon: typeof Workflow }[] = [
+    { id: 'pipelines', label: 'Pipelines', icon: Workflow },
+    { id: 'flow', label: 'Flow Builder', icon: GitBranch },
+    { id: 'forms', label: 'Form Analyzer', icon: FormInput },
+  ]
+
+  if (activeTab === 'flow') {
+    // Redirect to flow builder page
+    window.location.href = '/dashboard/flow'
+    return null
+  }
+
+  if (activeTab === 'forms') {
+    return (
+      <div className="h-[calc(100vh-64px)]">
+        {/* Tab bar */}
+        <div className="border-b px-6 flex items-center gap-1 pt-2" style={{ borderColor: 'var(--border)' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                activeTab === tab.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <FormAnalyzer />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
+      {/* Tab bar */}
+      <div className="border-b mb-6 flex items-center gap-1" style={{ borderColor: 'var(--border)' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === tab.id
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -94,23 +153,14 @@ export default function DashboardPage() {
             Manage and simulate your multi-stage processes.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="/dashboard/flow"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 border text-sm"
-            style={{ borderColor: 'var(--blue)', color: 'var(--blue)' }}
-          >
-            Flow Builder
-          </a>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-all hover:scale-105"
-            style={{ background: 'var(--blue)' }}
-          >
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-all hover:scale-105"
+          style={{ background: 'var(--blue)' }}
+        >
             <Plus size={16} />
             New Pipeline
           </button>
-        </div>
       </div>
 
       {/* Create Modal */}

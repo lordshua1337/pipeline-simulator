@@ -4,10 +4,12 @@ import { useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   ArrowLeft, Save, Play, RotateCcw, Layout, Loader2,
@@ -87,6 +89,7 @@ export default function FlowBuilderPage() {
   const [isSimulating, setIsSimulating] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [editingName, setEditingName] = useState(false)
+  const [activeDragType, setActiveDragType] = useState<FlowNodeType | null>(null)
 
   const selectedNode = useMemo(
     () => flow.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -193,6 +196,13 @@ export default function FlowBuilderPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current
+    if (data?.type === 'palette-item') {
+      setActiveDragType(data.nodeType as FlowNodeType)
+    }
+  }, [])
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, delta } = event
@@ -235,8 +245,10 @@ export default function FlowBuilderPage() {
     [flow.nodes, handleAddNode, handleMoveNode]
   )
 
+  const dragOverlayMeta = activeDragType ? NODE_TYPE_META[activeDragType] : null
+
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={(e) => { handleDragEnd(e); setActiveDragType(null) }}>
     <div className="h-screen flex flex-col bg-white">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-gray-200 bg-white flex-shrink-0 z-20">
@@ -372,6 +384,20 @@ export default function FlowBuilderPage() {
         )}
       </div>
     </div>
+
+    <DragOverlay dropAnimation={null}>
+      {dragOverlayMeta && (
+        <div className="w-[180px] bg-white rounded-xl border-2 border-blue-400 shadow-xl px-3 py-2 flex items-center gap-2 opacity-90">
+          <div
+            className="w-6 h-6 rounded-md flex items-center justify-center"
+            style={{ backgroundColor: dragOverlayMeta.color }}
+          >
+            <span className="text-white text-[10px] font-bold">{dragOverlayMeta.label[0]}</span>
+          </div>
+          <span className="text-xs font-semibold text-gray-900">{dragOverlayMeta.label}</span>
+        </div>
+      )}
+    </DragOverlay>
     </DndContext>
   )
 }
