@@ -6,6 +6,10 @@ import { NODE_VARIANTS } from '@/lib/node-variants'
 import {
   Globe, FileText, FormInput, DollarSign, TrendingUp,
   TrendingDown, Mail, CreditCard, Heart, Puzzle,
+  Phone, MessageSquare, Send, Headphones, Monitor,
+  FileCheck, PenTool, Video, BookOpen, Newspaper,
+  Clock, GitBranch, Zap, Database,
+  UserCheck, ClipboardList, Users, RefreshCcw,
 } from 'lucide-react'
 
 const ICONS: Record<string, typeof Globe> = {
@@ -19,6 +23,25 @@ const ICONS: Record<string, typeof Globe> = {
   checkout: CreditCard,
   thank_you: Heart,
   custom: Puzzle,
+  phone_call: Phone,
+  sms_outbound: MessageSquare,
+  direct_mail: Send,
+  sales_call: Headphones,
+  demo: Monitor,
+  proposal: FileCheck,
+  contract: PenTool,
+  webinar: Video,
+  lead_magnet: BookOpen,
+  video: Video,
+  blog_post: Newspaper,
+  delay: Clock,
+  condition: GitBranch,
+  webhook: Zap,
+  crm_update: Database,
+  onboarding: UserCheck,
+  survey: ClipboardList,
+  referral_program: Users,
+  renewal: RefreshCcw,
 }
 
 interface BaseFlowNodeProps {

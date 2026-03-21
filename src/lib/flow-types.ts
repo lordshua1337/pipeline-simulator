@@ -11,6 +11,30 @@ export type FlowNodeType =
   | 'checkout'
   | 'thank_you'
   | 'custom'
+  // Outbound
+  | 'phone_call'
+  | 'sms_outbound'
+  | 'direct_mail'
+  // Sales
+  | 'sales_call'
+  | 'demo'
+  | 'proposal'
+  | 'contract'
+  // Content / Lead Gen
+  | 'webinar'
+  | 'lead_magnet'
+  | 'video'
+  | 'blog_post'
+  // Automation
+  | 'delay'
+  | 'condition'
+  | 'webhook'
+  | 'crm_update'
+  // Retention
+  | 'onboarding'
+  | 'survey'
+  | 'referral_program'
+  | 'renewal'
 
 export type TrafficSourceKind =
   | 'paid_ads'
@@ -138,4 +162,28 @@ export const NODE_TYPE_META: Record<FlowNodeType, {
   checkout: { label: 'Checkout', category: 'Capture', color: '#22C55E', defaultMetrics: { conversionRate: 0.65, revenuePerSale: 97 } },
   thank_you: { label: 'Thank You', category: 'Pages', color: '#14B8A6', defaultMetrics: { conversionRate: 1.0 } },
   custom: { label: 'Custom Step', category: 'Other', color: '#64748B', defaultMetrics: { conversionRate: 0.5 } },
+  // Outbound
+  phone_call: { label: 'Phone Call', category: 'Outbound', color: '#0891B2', defaultMetrics: { conversionRate: 0.15, costPerLead: 5 } },
+  sms_outbound: { label: 'SMS Outbound', category: 'Outbound', color: '#0E7490', defaultMetrics: { conversionRate: 0.08, costPerLead: 0.05 } },
+  direct_mail: { label: 'Direct Mail', category: 'Outbound', color: '#155E75', defaultMetrics: { conversionRate: 0.02, costPerLead: 2.50 } },
+  // Sales
+  sales_call: { label: 'Sales Call', category: 'Sales', color: '#7C3AED', defaultMetrics: { conversionRate: 0.30 } },
+  demo: { label: 'Demo / Presentation', category: 'Sales', color: '#6D28D9', defaultMetrics: { conversionRate: 0.45 } },
+  proposal: { label: 'Proposal / Quote', category: 'Sales', color: '#5B21B6', defaultMetrics: { conversionRate: 0.50 } },
+  contract: { label: 'Contract / Close', category: 'Sales', color: '#4C1D95', defaultMetrics: { conversionRate: 0.65, revenuePerSale: 2500 } },
+  // Content / Lead Gen
+  webinar: { label: 'Webinar', category: 'Content', color: '#DC2626', defaultMetrics: { conversionRate: 0.35 } },
+  lead_magnet: { label: 'Lead Magnet', category: 'Content', color: '#B91C1C', defaultMetrics: { conversionRate: 0.40 } },
+  video: { label: 'Video / VSL', category: 'Content', color: '#991B1B', defaultMetrics: { conversionRate: 0.20 } },
+  blog_post: { label: 'Blog / Article', category: 'Content', color: '#7F1D1D', defaultMetrics: { conversionRate: 0.05 } },
+  // Automation
+  delay: { label: 'Wait / Delay', category: 'Automation', color: '#CA8A04', defaultMetrics: { conversionRate: 0.95 } },
+  condition: { label: 'If / Split', category: 'Automation', color: '#A16207', defaultMetrics: { conversionRate: 0.50 } },
+  webhook: { label: 'Webhook / API', category: 'Automation', color: '#854D0E', defaultMetrics: { conversionRate: 1.0 } },
+  crm_update: { label: 'CRM Update', category: 'Automation', color: '#713F12', defaultMetrics: { conversionRate: 1.0 } },
+  // Retention
+  onboarding: { label: 'Onboarding', category: 'Retention', color: '#059669', defaultMetrics: { conversionRate: 0.80 } },
+  survey: { label: 'Survey / NPS', category: 'Retention', color: '#047857', defaultMetrics: { conversionRate: 0.25 } },
+  referral_program: { label: 'Referral Program', category: 'Retention', color: '#065F46', defaultMetrics: { conversionRate: 0.10 } },
+  renewal: { label: 'Renewal / Upsell', category: 'Retention', color: '#064E3B', defaultMetrics: { conversionRate: 0.70, revenuePerSale: 49 } },
 }
