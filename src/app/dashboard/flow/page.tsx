@@ -452,23 +452,31 @@ export default function FlowBuilderPage() {
       <div className="flex-1 flex overflow-hidden">
         <NodePalette />
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <FlowCanvas
-            nodes={flow.nodes}
-            edges={flow.edges}
-            selectedNodeId={selectedNodeId}
-            selectedEdgeId={selectedEdgeId}
-            onSelectNode={setSelectedNodeId}
-            onSelectEdge={setSelectedEdgeId}
-            onAddNode={handleAddNode}
-            onMoveNode={handleMoveNode}
-            onAddEdge={handleAddEdge}
-            onDuplicateNode={handleDuplicateNode}
-            connectingFrom={connectingFrom}
-            onSetConnectingFrom={setConnectingFrom}
-            trafficMap={trafficMap}
-          />
+        <FlowCanvas
+          nodes={flow.nodes}
+          edges={flow.edges}
+          selectedNodeId={selectedNodeId}
+          selectedEdgeId={selectedEdgeId}
+          onSelectNode={setSelectedNodeId}
+          onSelectEdge={setSelectedEdgeId}
+          onAddNode={handleAddNode}
+          onMoveNode={handleMoveNode}
+          onAddEdge={handleAddEdge}
+          onDuplicateNode={handleDuplicateNode}
+          connectingFrom={connectingFrom}
+          onSetConnectingFrom={setConnectingFrom}
+          trafficMap={trafficMap}
+        />
 
+        {/* Right panel: config when node selected, results when simulation run */}
+        {selectedNode ? (
+          <NodeConfigPanel
+            node={selectedNode}
+            onUpdate={handleUpdateNode}
+            onDelete={handleDeleteNode}
+            onClose={() => setSelectedNodeId(null)}
+          />
+        ) : simResult ? (
           <FlowResults
             result={simResult}
             monteCarlo={mcResult}
@@ -477,16 +485,7 @@ export default function FlowBuilderPage() {
               setMcResult(null)
             }}
           />
-        </div>
-
-        {selectedNode && (
-          <NodeConfigPanel
-            node={selectedNode}
-            onUpdate={handleUpdateNode}
-            onDelete={handleDeleteNode}
-            onClose={() => setSelectedNodeId(null)}
-          />
-        )}
+        ) : null}
       </div>
     </div>
 

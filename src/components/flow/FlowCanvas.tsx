@@ -113,14 +113,15 @@ export function FlowCanvas({
 
   const handleCanvasMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (connectingFrom && canvasRef.current) {
+      // Always track mouse for connection preview
+      if (canvasRef.current) {
         const rect = canvasRef.current.getBoundingClientRect()
         const pos = screenToCanvas(e.clientX, e.clientY, rect)
         setMousePos(pos)
       }
       onPanMove(e)
     },
-    [connectingFrom, screenToCanvas, onPanMove]
+    [screenToCanvas, onPanMove]
   )
 
   const handleCanvasMouseUp = useCallback(() => {
