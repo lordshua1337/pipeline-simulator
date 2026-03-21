@@ -27,6 +27,8 @@ interface BaseFlowNodeProps {
   computedTraffic?: number
 }
 
+const PORT_CLASS = 'absolute w-3.5 h-3.5 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 transition-colors z-20 cursor-crosshair'
+
 export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: BaseFlowNodeProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `canvas-node-${node.id}`,
@@ -58,11 +60,26 @@ export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: Base
       }}
       className="group"
     >
-      {/* Input port */}
+      {/* 4 connection ports: top, right, bottom, left */}
       <div
-        className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 transition-colors z-20 cursor-crosshair"
-        data-port="input"
-        data-node-id={node.id}
+        className={PORT_CLASS}
+        style={{ top: -7, left: '50%', transform: 'translateX(-50%)' }}
+        data-port="input" data-port-side="top" data-node-id={node.id}
+      />
+      <div
+        className={PORT_CLASS}
+        style={{ right: -7, top: '50%', transform: 'translateY(-50%)' }}
+        data-port="output" data-port-side="right" data-node-id={node.id}
+      />
+      <div
+        className={PORT_CLASS}
+        style={{ bottom: -7, left: '50%', transform: 'translateX(-50%)' }}
+        data-port="output" data-port-side="bottom" data-node-id={node.id}
+      />
+      <div
+        className={PORT_CLASS}
+        style={{ left: -7, top: '50%', transform: 'translateY(-50%)' }}
+        data-port="input" data-port-side="left" data-node-id={node.id}
       />
 
       {/* Node body */}
@@ -113,13 +130,6 @@ export function BaseFlowNode({ node, selected, onSelect, computedTraffic }: Base
           )}
         </div>
       </div>
-
-      {/* Output port */}
-      <div
-        className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white bg-gray-300 hover:bg-blue-400 transition-colors z-20 cursor-crosshair"
-        data-port="output"
-        data-node-id={node.id}
-      />
     </div>
   )
 }

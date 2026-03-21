@@ -61,20 +61,22 @@ export function FlowCanvas({
       const port = target.closest('[data-port]') as HTMLElement | null
 
       if (port) {
-        const portType = port.dataset.port
         const nodeId = port.dataset.nodeId
 
-        if (portType === 'output' && nodeId) {
+        if (nodeId && !connectingFrom) {
+          // Start a new connection from this port
           setConnectingFrom(nodeId)
           e.stopPropagation()
           return
         }
 
-        if (portType === 'input' && nodeId && connectingFrom) {
+        if (nodeId && connectingFrom) {
           // Complete the connection
           if (connectingFrom !== nodeId) {
             const edgeExists = edges.some(
-              (edge) => edge.sourceId === connectingFrom && edge.targetId === nodeId
+              (edge) =>
+                (edge.sourceId === connectingFrom && edge.targetId === nodeId) ||
+                (edge.sourceId === nodeId && edge.targetId === connectingFrom)
             )
             if (!edgeExists) {
               onAddEdge({
