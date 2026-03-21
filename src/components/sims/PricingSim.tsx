@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react'
 import type { PricingData } from '@/lib/workspace-types'
-import { Plus, X, TrendingUp, TrendingDown, Users, Repeat, Gift, Percent, ShieldCheck, Package, Megaphone, Calendar } from 'lucide-react'
+import { Plus, X, TrendingUp, TrendingDown, Users, Repeat, Gift, Percent, ShieldCheck, Package, Megaphone, Calendar, Scale, Building2, CreditCard, Truck, Clock, BadgeDollarSign } from 'lucide-react'
 
 interface PricingSimProps {
   data: PricingData
@@ -187,6 +187,96 @@ const AVAILABLE_VARIABLES: readonly PricingVariable[] = [
       return { ...row, cost: row.cost + adCost, profit: row.profit - adCost, margin: row.revenue > 0 ? ((row.profit - adCost) / row.revenue) * 100 : 0 }
     },
   },
+  {
+    id: 'scaling',
+    name: 'Scaling Cost Curve',
+    icon: Scale,
+    color: '#7C3AED',
+    description: 'COGS increases as volume scales (diminishing returns)',
+    fields: [
+      { key: 'scalingThreshold', label: 'Threshold', defaultValue: 500, suffix: 'units', step: '50' },
+      { key: 'scalingMultiplier', label: 'Cost Multiplier', defaultValue: 130, suffix: '%', step: '5' },
+    ],
+    effect: (row, vals) => {
+      if (row.volume <= vals.scalingThreshold) return row
+      const overThreshold = row.volume - vals.scalingThreshold
+      const extraCost = overThreshold * (row.cost / Math.max(row.volume, 1)) * ((vals.scalingMultiplier / 100) - 1)
+      return { ...row, cost: row.cost + extraCost, profit: row.profit - extraCost, margin: row.revenue > 0 ? ((row.profit - extraCost) / row.revenue) * 100 : 0 }
+    },
+  },
+  {
+    id: 'overhead',
+    name: 'Fixed Overhead',
+    icon: Building2,
+    color: '#475569',
+    description: 'Monthly fixed costs (rent, salaries, tools, etc.)',
+    fields: [
+      { key: 'monthlyOverhead', label: 'Monthly', defaultValue: 15000, suffix: '$', step: '1000' },
+    ],
+    effect: (row, vals) => {
+      return { ...row, cost: row.cost + vals.monthlyOverhead, profit: row.profit - vals.monthlyOverhead, margin: row.revenue > 0 ? ((row.profit - vals.monthlyOverhead) / row.revenue) * 100 : 0 }
+    },
+  },
+  {
+    id: 'payment',
+    name: 'Payment Processing',
+    icon: CreditCard,
+    color: '#0369A1',
+    description: 'Stripe/processor fees on every transaction',
+    fields: [
+      { key: 'processingPct', label: 'Fee', defaultValue: 2.9, suffix: '%', step: '0.1' },
+      { key: 'perTxnFee', label: 'Per Txn', defaultValue: 0.30, suffix: '$', step: '0.05' },
+    ],
+    effect: (row, vals) => {
+      const fees = (row.revenue * vals.processingPct / 100) + (row.volume * vals.perTxnFee)
+      return { ...row, cost: row.cost + fees, profit: row.profit - fees, margin: row.revenue > 0 ? ((row.profit - fees) / row.revenue) * 100 : 0 }
+    },
+  },
+  {
+    id: 'shipping',
+    name: 'Shipping / Fulfillment',
+    icon: Truck,
+    color: '#92400E',
+    description: 'Per-unit fulfillment and shipping cost',
+    fields: [
+      { key: 'shippingCost', label: 'Per Unit', defaultValue: 5.50, suffix: '$', step: '0.50' },
+    ],
+    effect: (row, vals) => {
+      const sc = row.volume * vals.shippingCost
+      return { ...row, cost: row.cost + sc, profit: row.profit - sc, margin: row.revenue > 0 ? ((row.profit - sc) / row.revenue) * 100 : 0 }
+    },
+  },
+  {
+    id: 'time_to_revenue',
+    name: 'Time to Revenue',
+    icon: Clock,
+    color: '#B45309',
+    description: 'Delay between sale and cash collection (cash flow impact)',
+    fields: [
+      { key: 'daysToCollect', label: 'Days to Collect', defaultValue: 30, suffix: 'days', step: '5' },
+      { key: 'costOfCapital', label: 'Cost of Capital', defaultValue: 8, suffix: '%/yr', step: '1' },
+    ],
+    effect: (row, vals) => {
+      const dailyRate = vals.costOfCapital / 100 / 365
+      const carryingCost = row.revenue * dailyRate * vals.daysToCollect
+      return { ...row, cost: row.cost + carryingCost, profit: row.profit - carryingCost, margin: row.revenue > 0 ? ((row.profit - carryingCost) / row.revenue) * 100 : 0 }
+    },
+  },
+  {
+    id: 'ltv_multiplier',
+    name: 'LTV Multiplier',
+    icon: BadgeDollarSign,
+    color: '#059669',
+    description: 'Customers buy more than once -- multiply by repeat purchase rate',
+    fields: [
+      { key: 'avgPurchases', label: 'Avg Purchases', defaultValue: 2.5, suffix: 'x', step: '0.5' },
+    ],
+    effect: (row, vals) => {
+      const ltvRev = row.revenue * vals.avgPurchases
+      const ltvCost = row.cost * vals.avgPurchases
+      return { ...row, revenue: ltvRev, cost: ltvCost, profit: ltvRev - ltvCost, margin: ltvRev > 0 ? ((ltvRev - ltvCost) / ltvRev) * 100 : 0 }
+    },
+  },
 ]
 
 function demandAtPrice(basePrice: number, baseVolume: number, elasticity: number, testPrice: number): number {
@@ -323,43 +413,58 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
           </div>
         </div>
 
-        {/* Active variables -- same row or below */}
+        {/* Active variables -- structured grid */}
         {activeVars.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {activeVars.map((av) => {
-              const varDef = AVAILABLE_VARIABLES.find((v) => v.id === av.id)
-              if (!varDef) return null
+          <div className="sim-card mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: 'var(--text-muted)' }}>
+                Variables ({activeVars.length})
+              </span>
+              <button onClick={() => setActiveVars([])} className="text-[10px] hover:underline" style={{ color: 'var(--text-muted)' }}>
+                Clear All
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {activeVars.map((av) => {
+                const varDef = AVAILABLE_VARIABLES.find((v) => v.id === av.id)
+                if (!varDef) return null
 
-              return (
-                <div
-                  key={av.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl"
-                  style={{ background: `${varDef.color}08`, border: `1px solid ${varDef.color}20` }}
-                >
-                  <varDef.icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: varDef.color }} />
-                  <span className="text-[11px] font-medium" style={{ color: 'var(--text)' }}>{varDef.name}</span>
+                return (
+                  <div
+                    key={av.id}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+                  >
+                    <varDef.icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: varDef.color }} />
+                    <span className="text-[11px] font-medium w-40 flex-shrink-0" style={{ color: 'var(--text)' }}>
+                      {varDef.name}
+                    </span>
 
-                  {varDef.fields.map((field) => (
-                    <div key={field.key} className="flex items-center gap-1 ml-1">
-                      <span className="text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>{field.label}</span>
-                      <input
-                        type="number"
-                        value={av.values[field.key]}
-                        onChange={(e) => updateVarValue(av.id, field.key, parseFloat(e.target.value) || 0)}
-                        step={field.step}
-                        className="w-16 px-1.5 py-0.5 text-[11px] font-mono text-right rounded border outline-none focus:ring-1"
-                        style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-                      />
-                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{field.suffix}</span>
+                    <div className="flex items-center gap-3 ml-auto">
+                      {varDef.fields.map((field) => (
+                        <div key={field.key} className="flex items-center gap-1">
+                          <span className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            {field.label}
+                          </span>
+                          <input
+                            type="number"
+                            value={av.values[field.key]}
+                            onChange={(e) => updateVarValue(av.id, field.key, parseFloat(e.target.value) || 0)}
+                            step={field.step}
+                            className="w-16 px-1.5 py-0.5 text-[11px] font-mono text-right rounded outline-none"
+                            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                          />
+                          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{field.suffix}</span>
+                        </div>
+                      ))}
+                      <button onClick={() => removeVariable(av.id)} className="ml-1 hover:opacity-60">
+                        <X className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
+                      </button>
                     </div>
-                  ))}
-
-                  <button onClick={() => removeVariable(av.id)} className="ml-1 hover:opacity-60">
-                    <X className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
-                  </button>
-                </div>
-              )
-            })}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
