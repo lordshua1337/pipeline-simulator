@@ -109,7 +109,7 @@ export default function FlowBuilderPage() {
 
   // Global port click handler -- handles connection creation
   useEffect(() => {
-    const handlePortClick = (e: PointerEvent) => {
+    const handlePortClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       const port = target.closest('[data-port]') as HTMLElement | null
       if (!port) return
@@ -140,8 +140,8 @@ export default function FlowBuilderPage() {
       }
     }
 
-    document.addEventListener('pointerup', handlePortClick, true)
-    return () => document.removeEventListener('pointerup', handlePortClick, true)
+    document.addEventListener('click', handlePortClick, true)
+    return () => document.removeEventListener('click', handlePortClick, true)
   }, [connectingFrom, flow.edges])
 
   const handleAddNode = useCallback((node: FlowNode) => {

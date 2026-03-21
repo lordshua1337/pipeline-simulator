@@ -93,6 +93,7 @@ export function BaseFlowNode({ node, selected, onSelect, onDuplicate, computedTr
             data-port-side={side}
             data-node-id={node.id}
             onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           />
         )
       })}
