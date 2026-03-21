@@ -76,7 +76,35 @@ export function FormAnalyzer() {
   const removeStep = useCallback((id: string) => {
     setSteps((prev) => {
       if (prev.length <= 1) return prev
-      return prev.filter((s) => s.id !== id)
+
+      const idx = prev.findIndex((s) => s.id === id)
+      if (idx === -1) return prev
+
+      // When removing a step, the people who dropped off there now flow through.
+      // Recalculate: each remaining step keeps its own conversion rate relative
+      // to the step before it, but the removed step's drop-off is eliminated.
+      const removed = prev[idx]
+      const without = prev.filter((s) => s.id !== id)
+
+      // Recalculate submissions from the removal point forward.
+      // The step after the removed one now receives what the step BEFORE
+      // the removed one had, multiplied by its own pass-through rate.
+      return without.map((step, i) => {
+        if (i <= idx - 1 || idx === 0 && i === 0) return step
+
+        // This step originally received X from the removed step (or the step before it).
+        // Now it receives from the step before it in the new array.
+        const prevInOriginal = prev[prev.indexOf(step) - 1]
+        const prevInNew = without[i - 1]
+
+        if (!prevInOriginal || !prevInNew) return step
+
+        // Keep this step's original conversion rate (submissions / what it received)
+        const originalReceived = prevInOriginal.submissions
+        const ownConvRate = originalReceived > 0 ? step.submissions / originalReceived : 1
+
+        return { ...step, submissions: Math.round(prevInNew.submissions * ownConvRate) }
+      })
     })
   }, [])
 
