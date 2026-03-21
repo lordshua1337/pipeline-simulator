@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react'
 import type { PricingData } from '@/lib/workspace-types'
-import { DollarSign, TrendingUp, Target } from 'lucide-react'
 
 interface PricingSimProps {
   data: PricingData
@@ -37,114 +36,233 @@ export function PricingSim({ data, onChange }: PricingSimProps) {
   const currentProfit = currentRevenue - data.costPerUnit * data.currentVolume
   const optimal = analysis.reduce((best, a) => a.profit > best.profit ? a : best, analysis[0])
   const maxRevenue = Math.max(...analysis.map((a) => a.revenue))
-  const maxProfit = Math.max(...analysis.map((a) => a.profit))
+  const maxProfit = Math.max(...analysis.map((a) => Math.max(0, a.profit)))
+  const profitDelta = optimal.profit - currentProfit
 
-  const fields: { label: string; key: keyof PricingData; step: string }[] = [
-    { label: 'Current Price', key: 'currentPrice', step: '1' },
-    { label: 'Current Volume', key: 'currentVolume', step: '10' },
-    { label: 'Elasticity', key: 'elasticity', step: '0.1' },
-    { label: 'Cost Per Unit', key: 'costPerUnit', step: '1' },
+  const fields: { label: string; key: keyof PricingData; prefix?: string }[] = [
+    { label: 'Current Price', key: 'currentPrice', prefix: '$' },
+    { label: 'Volume / Month', key: 'currentVolume' },
+    { label: 'Elasticity', key: 'elasticity' },
+    { label: 'COGS / Unit', key: 'costPerUnit', prefix: '$' },
   ]
 
   return (
-    <div className="h-full overflow-y-auto p-6 max-w-5xl mx-auto">
-      {/* Inputs */}
-      <div className="grid grid-cols-4 gap-3 mb-8">
-        {fields.map((f) => (
-          <div key={f.key} className="bg-gray-50 rounded-lg px-4 py-3">
-            <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">{f.label}</label>
-            <input
-              type="number"
-              value={data[f.key] as number}
-              onChange={(e) => onChange({ ...data, [f.key]: parseFloat(e.target.value) || 0 })}
-              step={f.step}
-              className="w-full px-2 py-1.5 text-sm font-mono bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        {[
-          { label: 'Current Revenue', value: fmt(currentRevenue), sub: `${data.currentVolume} units @ $${data.currentPrice}`, color: 'text-gray-700' },
-          { label: 'Optimal Price', value: `$${optimal.price}`, sub: `${fmt(optimal.profit)} profit at ${optimal.volume} units`, color: 'text-green-600' },
-          { label: 'Profit Opportunity', value: fmt(optimal.profit - currentProfit), sub: optimal.profit > currentProfit ? 'vs current pricing' : 'current pricing is optimal', color: optimal.profit > currentProfit ? 'text-blue-600' : 'text-gray-500' },
-        ].map((card) => (
-          <div key={card.label} className="bg-gray-50 rounded-lg p-4">
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{card.label}</div>
-            <div className={`text-lg font-bold ${card.color}`}>{card.value}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">{card.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Revenue curve */}
-      <div className="border border-gray-200 rounded-xl p-5 mb-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Revenue & Profit Curve</h3>
-        <div className="flex items-end gap-2 h-48">
-          {analysis.map((a) => {
-            const revH = maxRevenue > 0 ? (a.revenue / maxRevenue) * 100 : 0
-            const profH = maxProfit > 0 ? (Math.max(0, a.profit) / maxProfit) * 50 : 0
-            const isCurrent = a.price === data.currentPrice
-            const isOptimal = a.price === optimal.price
-            return (
-              <div key={a.price} className="flex-1 flex flex-col items-center gap-1 group relative">
-                <div className="w-full flex items-end justify-center gap-px" style={{ height: '100%' }}>
-                  <div
-                    className={`w-1/2 rounded-t transition-colors ${isCurrent ? 'bg-blue-500' : isOptimal ? 'bg-green-500' : 'bg-blue-300'}`}
-                    style={{ height: `${revH}%` }}
-                  />
-                  <div
-                    className={`w-1/2 rounded-t ${isOptimal ? 'bg-green-300' : 'bg-gray-300'}`}
-                    style={{ height: `${profH * 2}%` }}
-                  />
-                </div>
-                <span className={`text-[9px] font-mono ${isCurrent ? 'text-blue-600 font-bold' : isOptimal ? 'text-green-600 font-bold' : 'text-gray-400'}`}>
-                  ${a.price}
-                </span>
-                <div className="absolute bottom-full mb-2 bg-gray-900 text-white text-[9px] px-2 py-1 rounded hidden group-hover:block whitespace-nowrap z-10">
-                  Rev: {fmt(a.revenue)} | Profit: {fmt(a.profit)} | Vol: {a.volume}
-                </div>
+    <div className="h-full overflow-y-auto p-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Inputs -- inline, minimal */}
+        <div className="flex items-center gap-6 mb-8">
+          {fields.map((f) => (
+            <div key={f.key} className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                {f.label}
+              </span>
+              <div className="relative">
+                {f.prefix && (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--text-muted)' }}>
+                    {f.prefix}
+                  </span>
+                )}
+                <input
+                  type="number"
+                  value={data[f.key] as number}
+                  onChange={(e) => onChange({ ...data, [f.key]: parseFloat(e.target.value) || 0 })}
+                  className="sim-input w-28 text-right"
+                  style={{ paddingLeft: f.prefix ? '24px' : '12px' }}
+                />
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
-        <div className="flex items-center gap-4 mt-3 justify-center text-[10px] text-gray-500">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-300" />Revenue</div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gray-300" />Profit</div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />Current</div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-green-500" />Optimal</div>
-        </div>
-      </div>
 
-      {/* Price point table */}
-      <div className="border border-gray-200 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Price Point Analysis</h3>
-        <table className="w-full text-xs">
-          <thead className="text-gray-500 uppercase tracking-wider">
-            <tr>
-              <th className="text-left py-1.5">Price</th>
-              <th className="text-right py-1.5">Volume</th>
-              <th className="text-right py-1.5">Revenue</th>
-              <th className="text-right py-1.5">Cost</th>
-              <th className="text-right py-1.5">Profit</th>
-              <th className="text-right py-1.5">Margin</th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-700">
-            {analysis.map((a) => (
-              <tr key={a.price} className={`border-t border-gray-100 ${a.price === optimal.price ? 'bg-green-50' : a.price === data.currentPrice ? 'bg-blue-50' : ''}`}>
-                <td className="py-1.5 font-mono font-medium">${a.price}</td>
-                <td className="py-1.5 font-mono text-right">{a.volume.toLocaleString()}</td>
-                <td className="py-1.5 font-mono text-right">{fmt(a.revenue)}</td>
-                <td className="py-1.5 font-mono text-right text-red-500">{fmt(a.cost)}</td>
-                <td className="py-1.5 font-mono text-right text-green-600">{fmt(a.profit)}</td>
-                <td className="py-1.5 font-mono text-right">{a.margin.toFixed(0)}%</td>
-              </tr>
+        {/* Hero numbers */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="sim-card">
+            <div className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+              Current
+            </div>
+            <div className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--text)' }}>
+              {fmt(currentRevenue)}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+              {data.currentVolume.toLocaleString()} units @ ${data.currentPrice}
+            </div>
+          </div>
+
+          <div className="sim-card" style={{ borderColor: 'var(--accent)', borderWidth: '1px' }}>
+            <div className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>
+              Optimal Price
+            </div>
+            <div className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'SF Mono', monospace", color: 'var(--accent)' }}>
+              ${optimal.price}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+              {fmt(optimal.profit)} profit at {optimal.volume.toLocaleString()} units
+            </div>
+          </div>
+
+          <div className="sim-card">
+            <div className="text-[10px] uppercase tracking-widest mb-2" style={{ color: profitDelta > 0 ? 'var(--accent)' : 'var(--text-muted)' }}>
+              Opportunity
+            </div>
+            <div
+              className="text-3xl font-bold tracking-tight"
+              style={{ fontFamily: "'SF Mono', monospace", color: profitDelta > 0 ? 'var(--accent)' : 'var(--text-muted)' }}
+            >
+              {profitDelta > 0 ? '+' : ''}{fmt(profitDelta)}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+              {profitDelta > 0 ? 'additional profit available' : 'current pricing is optimal'}
+            </div>
+          </div>
+        </div>
+
+        {/* Revenue + Profit curve */}
+        <div className="sim-card mb-6">
+          <div className="text-xs font-semibold uppercase tracking-widest mb-6" style={{ color: 'var(--text-muted)' }}>
+            Revenue &amp; Profit by Price Point
+          </div>
+
+          <div className="flex items-end gap-[3px] h-52">
+            {analysis.map((a) => {
+              const revH = maxRevenue > 0 ? (a.revenue / maxRevenue) * 100 : 0
+              const profH = maxProfit > 0 ? (Math.max(0, a.profit) / maxProfit) * 48 : 0
+              const isCurrent = a.price === data.currentPrice
+              const isOptimal = a.price === optimal.price
+
+              return (
+                <div key={a.price} className="flex-1 flex flex-col items-center group relative" style={{ height: '100%' }}>
+                  <div className="w-full flex items-end justify-center gap-[1px]" style={{ height: '100%' }}>
+                    {/* Revenue bar */}
+                    <div
+                      className="w-[45%] rounded-t transition-all duration-300"
+                      style={{
+                        height: `${revH}%`,
+                        background: isCurrent
+                          ? 'var(--blue)'
+                          : isOptimal
+                          ? 'var(--accent)'
+                          : 'rgba(255,255,255,0.08)',
+                        minHeight: revH > 0 ? 2 : 0,
+                      }}
+                    />
+                    {/* Profit bar */}
+                    <div
+                      className="w-[45%] rounded-t transition-all duration-300"
+                      style={{
+                        height: `${profH * 2}%`,
+                        background: isOptimal
+                          ? 'rgba(16, 185, 129, 0.4)'
+                          : isCurrent
+                          ? 'rgba(59, 130, 246, 0.4)'
+                          : 'rgba(255,255,255,0.04)',
+                        minHeight: profH > 0 ? 2 : 0,
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="text-[9px] mt-2"
+                    style={{
+                      fontFamily: "'SF Mono', monospace",
+                      color: isCurrent ? 'var(--blue)' : isOptimal ? 'var(--accent)' : 'var(--text-muted)',
+                      fontWeight: isCurrent || isOptimal ? 700 : 400,
+                    }}
+                  >
+                    ${a.price}
+                  </span>
+
+                  {/* Tooltip */}
+                  <div
+                    className="absolute bottom-full mb-3 px-3 py-2 rounded-lg text-[10px] hidden group-hover:block whitespace-nowrap z-10 pointer-events-none"
+                    style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border-light)',
+                      color: 'var(--text)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    }}
+                  >
+                    <div style={{ fontFamily: "'SF Mono', monospace" }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Rev</span> {fmt(a.revenue)}
+                      <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>|</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Profit</span>{' '}
+                      <span style={{ color: a.profit > 0 ? 'var(--accent)' : 'var(--red)' }}>{fmt(a.profit)}</span>
+                      <span style={{ color: 'var(--text-muted)', margin: '0 6px' }}>|</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Vol</span> {a.volume.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-5 mt-4 justify-center">
+            {[
+              { label: 'Revenue', color: 'rgba(255,255,255,0.12)' },
+              { label: 'Profit', color: 'rgba(255,255,255,0.06)' },
+              { label: 'Current', color: 'var(--blue)' },
+              { label: 'Optimal', color: 'var(--accent)' },
+            ].map((l) => (
+              <div key={l.label} className="flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: l.color }} />
+                {l.label}
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
+
+        {/* Price point table */}
+        <div className="sim-card">
+          <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--text-muted)' }}>
+            Price Point Analysis
+          </div>
+
+          <table className="w-full text-xs" style={{ fontFamily: "'SF Mono', monospace" }}>
+            <thead>
+              <tr style={{ color: 'var(--text-muted)' }}>
+                <th className="text-left py-2.5 text-[10px] uppercase tracking-widest font-medium">Price</th>
+                <th className="text-right py-2.5 text-[10px] uppercase tracking-widest font-medium">Volume</th>
+                <th className="text-right py-2.5 text-[10px] uppercase tracking-widest font-medium">Revenue</th>
+                <th className="text-right py-2.5 text-[10px] uppercase tracking-widest font-medium">Cost</th>
+                <th className="text-right py-2.5 text-[10px] uppercase tracking-widest font-medium">Profit</th>
+                <th className="text-right py-2.5 text-[10px] uppercase tracking-widest font-medium">Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.map((a) => {
+                const isCurrent = a.price === data.currentPrice
+                const isOptimal = a.price === optimal.price
+
+                return (
+                  <tr
+                    key={a.price}
+                    className="transition-colors"
+                    style={{
+                      borderTop: '1px solid var(--border)',
+                      background: isOptimal
+                        ? 'var(--accent-soft)'
+                        : isCurrent
+                        ? 'var(--blue-soft)'
+                        : 'transparent',
+                    }}
+                  >
+                    <td className="py-2.5" style={{ color: isOptimal ? 'var(--accent)' : isCurrent ? 'var(--blue)' : 'var(--text)' }}>
+                      ${a.price}
+                      {isOptimal && <span className="ml-2 text-[9px] opacity-60">BEST</span>}
+                      {isCurrent && <span className="ml-2 text-[9px] opacity-60">NOW</span>}
+                    </td>
+                    <td className="py-2.5 text-right" style={{ color: 'var(--text-secondary)' }}>{a.volume.toLocaleString()}</td>
+                    <td className="py-2.5 text-right" style={{ color: 'var(--text)' }}>{fmt(a.revenue)}</td>
+                    <td className="py-2.5 text-right" style={{ color: 'var(--red)', opacity: 0.7 }}>{fmt(a.cost)}</td>
+                    <td className="py-2.5 text-right" style={{ color: a.profit > 0 ? 'var(--accent)' : 'var(--red)' }}>
+                      {fmt(a.profit)}
+                    </td>
+                    <td className="py-2.5 text-right" style={{ color: 'var(--text-secondary)' }}>{a.margin.toFixed(0)}%</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

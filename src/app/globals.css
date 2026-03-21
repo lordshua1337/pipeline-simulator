@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f8fafc;
-  --bg-alt: #f1f5f9;
-  --surface: #ffffff;
-  --border: #e2e8f0;
-  --text: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --bg: #111113;
+  --bg-alt: #18181B;
+  --surface: #1E1E22;
+  --surface-hover: #252529;
+  --border: #2A2A2F;
+  --border-light: #333338;
+  --text: #EDEDEF;
+  --text-secondary: #A0A0A8;
+  --text-muted: #5C5C66;
 
-  --blue: #3b82f6;
-  --blue-soft: rgba(59, 130, 246, 0.1);
-  --green: #10b981;
-  --green-soft: rgba(16, 185, 129, 0.1);
-  --amber: #f59e0b;
-  --amber-soft: rgba(245, 158, 11, 0.1);
-  --red: #ef4444;
-  --red-soft: rgba(239, 68, 68, 0.1);
-  --purple: #8b5cf6;
-  --purple-soft: rgba(139, 92, 246, 0.1);
-  --cyan: #06b6d4;
-  --cyan-soft: rgba(6, 182, 212, 0.1);
+  --accent: #10B981;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --blue: #3B82F6;
+  --blue-soft: rgba(59, 130, 246, 0.12);
+  --green: #10B981;
+  --green-soft: rgba(16, 185, 129, 0.12);
+  --amber: #F59E0B;
+  --amber-soft: rgba(245, 158, 11, 0.12);
+  --red: #EF4444;
+  --red-soft: rgba(239, 68, 68, 0.12);
+  --purple: #8B5CF6;
+  --purple-soft: rgba(139, 92, 246, 0.12);
+  --cyan: #06B6D4;
+  --cyan-soft: rgba(6, 182, 212, 0.12);
 }
 
 @theme inline {
@@ -33,20 +37,86 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-alt);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+/* Shared sim input style */
+.sim-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+.sim-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.sim-input:hover:not(:focus) {
+  border-color: var(--border-light);
+}
+
+/* Sim card */
+.sim-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.sim-card-compact {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+/* Inline editable number */
+.sim-inline-input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  width: 100%;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.sim-inline-input:hover {
+  background: var(--bg);
+}
+
+.sim-inline-input:focus {
+  background: var(--bg);
+  outline: 1px solid var(--border-light);
 }

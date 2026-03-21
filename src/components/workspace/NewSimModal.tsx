@@ -21,44 +21,47 @@ export function NewSimModal({ open, onClose, onCreate }: NewSimModalProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+        className="w-full max-w-2xl rounded-2xl overflow-hidden"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">New Simulation</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Choose what you want to model</p>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>New Simulation</h2>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Choose what you want to model</p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center">
-            <X className="w-4 h-4 text-gray-400" />
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 p-6">
+        <div className="grid grid-cols-2 gap-2 p-4">
           {SIM_TYPES.map((sim) => {
             const Icon = ICONS[sim.icon] || Workflow
             return (
               <button
                 key={sim.type}
-                onClick={() => {
-                  onCreate(sim.type)
-                  onClose()
-                }}
-                className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/30 transition-all text-left group"
+                onClick={() => { onCreate(sim.type); onClose() }}
+                className="flex items-start gap-3 p-4 rounded-xl text-left group transition-all"
+                style={{ border: '1px solid var(--border)' }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = sim.color}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
               >
                 <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${sim.color}15` }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${sim.color}18` }}
                 >
-                  <Icon className="w-4.5 h-4.5" style={{ color: sim.color }} />
+                  <Icon className="w-4 h-4" style={{ color: sim.color }} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-                    {sim.label}
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                  <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>{sim.label}</div>
+                  <div className="text-[10px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {sim.description}
                   </div>
                 </div>

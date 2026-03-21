@@ -37,7 +37,10 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onRename, onDupli
   }
 
   return (
-    <div className="flex items-center h-10 bg-gray-50 border-b border-gray-200 px-1 overflow-x-auto flex-shrink-0">
+    <div
+      className="flex items-center h-10 px-1 overflow-x-auto flex-shrink-0"
+      style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}
+    >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId
         const color = getTabColor(tab)
@@ -47,11 +50,14 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onRename, onDupli
             key={tab.id}
             onClick={() => onSelect(tab.id)}
             onDoubleClick={() => startRename(tab)}
-            className={`group flex items-center gap-1.5 px-3 h-8 rounded-t-lg cursor-pointer transition-colors flex-shrink-0 max-w-[200px] ${
-              isActive
-                ? 'bg-white border border-gray-200 border-b-white -mb-px'
-                : 'hover:bg-gray-100'
-            }`}
+            className="group flex items-center gap-1.5 px-3 h-8 rounded-t-lg cursor-pointer transition-all flex-shrink-0 max-w-[200px]"
+            style={{
+              background: isActive ? 'var(--surface)' : 'transparent',
+              borderLeft: isActive ? '1px solid var(--border)' : '1px solid transparent',
+              borderRight: isActive ? '1px solid var(--border)' : '1px solid transparent',
+              borderTop: isActive ? '1px solid var(--border)' : '1px solid transparent',
+              marginBottom: isActive ? '-1px' : '0',
+            }}
           >
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
 
@@ -65,40 +71,48 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose, onRename, onDupli
                   if (e.key === 'Enter') finishRename()
                   if (e.key === 'Escape') setEditingId(null)
                 }}
-                className="text-[11px] font-medium bg-transparent border-none outline-none w-24 text-gray-900"
+                className="text-[11px] font-medium bg-transparent border-none outline-none w-24"
+                style={{ color: 'var(--text)' }}
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="text-[11px] font-medium text-gray-700 truncate">{tab.name}</span>
+              <span
+                className="text-[11px] font-medium truncate"
+                style={{ color: isActive ? 'var(--text)' : 'var(--text-muted)' }}
+              >
+                {tab.name}
+              </span>
             )}
 
             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
               <button
                 onClick={(e) => { e.stopPropagation(); onDuplicate(tab.id) }}
-                className="w-4 h-4 flex items-center justify-center rounded hover:bg-gray-200"
+                className="w-4 h-4 flex items-center justify-center rounded"
+                style={{ color: 'var(--text-muted)' }}
                 title="Duplicate"
               >
-                <Copy className="w-2.5 h-2.5 text-gray-400" />
+                <Copy className="w-2.5 h-2.5" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(tab.id) }}
-                className="w-4 h-4 flex items-center justify-center rounded hover:bg-red-100"
+                className="w-4 h-4 flex items-center justify-center rounded hover:text-red-400"
+                style={{ color: 'var(--text-muted)' }}
                 title="Close"
               >
-                <X className="w-2.5 h-2.5 text-gray-400 hover:text-red-500" />
+                <X className="w-2.5 h-2.5" />
               </button>
             </div>
           </div>
         )
       })}
 
-      {/* New tab button */}
       <button
         onClick={onNew}
-        className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0 ml-1"
+        className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors flex-shrink-0 ml-1"
+        style={{ color: 'var(--text-muted)' }}
         title="New simulation"
       >
-        <Plus className="w-3.5 h-3.5 text-gray-400" />
+        <Plus className="w-3.5 h-3.5" />
       </button>
     </div>
   )

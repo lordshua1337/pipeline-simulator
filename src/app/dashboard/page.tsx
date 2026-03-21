@@ -70,17 +70,19 @@ export default function DashboardPage() {
   // Empty workspace welcome
   if (workspace.tabs.length === 0 && !showNewModal) {
     return (
-      <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50/50">
+      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
         <div className="text-center max-w-lg">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-8 h-8 text-blue-500" />
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6"
+            style={{ background: 'var(--accent-soft)', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+          >
+            <Sparkles className="w-7 h-7" style={{ color: 'var(--accent)' }} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Simulation Workbench</h1>
-          <p className="text-sm text-gray-500 mb-8">
-            Model any measurable business process. A/B tests, revenue forecasts,
-            cohort retention, pricing optimization, lead scoring, funnels -- all in one workspace.
+          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text)' }}>Simulation Workbench</h1>
+          <p className="text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
+            Model any measurable business process. Open multiple tabs. Compare results.
           </p>
-          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mb-6">
+          <div className="grid grid-cols-2 gap-2 max-w-md mx-auto mb-6">
             {[
               { type: 'ab_test' as SimulationType, label: 'A/B Test', icon: FlaskConical, color: '#F59E0B' },
               { type: 'revenue_forecast' as SimulationType, label: 'Revenue Forecast', icon: TrendingUp, color: '#22C55E' },
@@ -92,26 +94,31 @@ export default function DashboardPage() {
               <button
                 key={item.type}
                 onClick={() => handleCreate(item.type)}
-                className="flex items-center gap-2.5 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-all text-left"
+                className="flex items-center gap-2.5 px-4 py-3 rounded-xl transition-all text-left"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = item.color}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${item.color}18` }}>
                   <item.icon className="w-4 h-4" style={{ color: item.color }} />
                 </div>
-                <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{item.label}</span>
               </button>
             ))}
           </div>
           <div className="flex items-center justify-center gap-3">
             <a
               href="/dashboard/flow"
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+              style={{ background: 'var(--accent)', color: '#000' }}
             >
               <GitBranch className="w-4 h-4" />
               Flow Builder
             </a>
             <a
               href="/dashboard/pipeline"
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
             >
               <Workflow className="w-4 h-4" />
               Pipeline Kanban
