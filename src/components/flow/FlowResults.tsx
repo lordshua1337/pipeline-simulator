@@ -34,8 +34,8 @@ export function FlowResults({ result, monteCarlo, onClose }: FlowResultsProps) {
       {/* Summary */}
       <div className="px-4 py-3 border-b border-gray-100 space-y-3">
         {[
-          { label: 'Revenue', value: fmt(result.totalRevenue), color: result.totalRevenue > 0 ? 'text-gray-900' : 'text-gray-400' },
-          { label: 'Cost', value: fmt(result.totalCost), color: 'text-gray-600' },
+          { label: 'Revenue', value: fmt(result.totalRevenue), color: result.totalRevenue > 0 ? '#1A1A1A' : '#9CA3AF' },
+          { label: 'Cost', value: fmt(result.totalCost), color: '#6B7280' },
           { label: 'Net Profit', value: fmt(result.netProfit), color: result.netProfit >= 0 ? '#10B981' : '#EF4444' },
           { label: 'ROI', value: `${result.roi.toFixed(0)}%`, color: result.roi >= 0 ? '#10B981' : '#EF4444' },
         ].map((card) => (
@@ -43,8 +43,7 @@ export function FlowResults({ result, monteCarlo, onClose }: FlowResultsProps) {
             <span className="text-[10px] uppercase tracking-widest text-gray-400">{card.label}</span>
             <span
               className="text-sm font-bold"
-              style={{ fontFamily: "'SF Mono', monospace", color: card.color.startsWith('#') ? card.color : undefined }}
-              {...(!card.color.startsWith('#') ? { className: `text-sm font-bold ${card.color}` } : {})}
+              style={{ fontFamily: "'SF Mono', monospace", color: card.color }}
             >
               {card.value}
             </span>
