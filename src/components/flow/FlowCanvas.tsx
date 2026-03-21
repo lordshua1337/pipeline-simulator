@@ -16,6 +16,8 @@ interface FlowCanvasProps {
   edges: readonly FlowEdge[]
   selectedNodeId: string | null
   selectedEdgeId: string | null
+  connectingFrom: string | null
+  onSetConnectingFrom: (nodeId: string | null) => void
   onSelectNode: (id: string | null) => void
   onSelectEdge: (id: string | null) => void
   onAddNode: (node: FlowNode) => void
@@ -36,6 +38,8 @@ export function FlowCanvas({
   onMoveNode,
   onAddEdge,
   onDuplicateNode,
+  connectingFrom,
+  onSetConnectingFrom,
   trafficMap,
 }: FlowCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -51,7 +55,6 @@ export function FlowCanvas({
     fitToContent,
   } = useCanvasViewport()
 
-  const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
 
   const { setNodeRef: setDropRef } = useDroppable({ id: 'flow-canvas' })
@@ -67,7 +70,7 @@ export function FlowCanvas({
 
         if (nodeId && !connectingFrom) {
           // Start a new connection from this port
-          setConnectingFrom(nodeId)
+          onSetConnectingFrom(nodeId)
           e.stopPropagation()
           return
         }
@@ -88,7 +91,7 @@ export function FlowCanvas({
               })
             }
           }
-          setConnectingFrom(null)
+          onSetConnectingFrom(null)
           setMousePos(null)
           e.stopPropagation()
           return
@@ -99,7 +102,7 @@ export function FlowCanvas({
       if (!port) {
         onSelectNode(null)
         onSelectEdge(null)
-        setConnectingFrom(null)
+        onSetConnectingFrom(null)
         setMousePos(null)
       }
 
@@ -123,7 +126,7 @@ export function FlowCanvas({
   const handleCanvasMouseUp = useCallback(() => {
     if (connectingFrom) {
       // Dropped on empty space -- cancel connection
-      setConnectingFrom(null)
+      onSetConnectingFrom(null)
       setMousePos(null)
     }
     endPan()

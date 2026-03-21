@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -90,6 +90,7 @@ export default function FlowBuilderPage() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [activeDragType, setActiveDragType] = useState<FlowNodeType | null>(null)
+  const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
 
   const selectedNode = useMemo(
     () => flow.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -105,6 +106,43 @@ export default function FlowBuilderPage() {
     }
     return map
   }, [simResult])
+
+  // Global port click handler -- handles connection creation
+  useEffect(() => {
+    const handlePortClick = (e: PointerEvent) => {
+      const target = e.target as HTMLElement
+      const port = target.closest('[data-port]') as HTMLElement | null
+      if (!port) return
+
+      const nodeId = port.dataset.nodeId
+      if (!nodeId) return
+
+      e.stopPropagation()
+      e.preventDefault()
+
+      if (!connectingFrom) {
+        setConnectingFrom(nodeId)
+      } else {
+        if (connectingFrom !== nodeId) {
+          const alreadyConnected = flow.edges.some(
+            (edge) => (edge.sourceId === connectingFrom && edge.targetId === nodeId) ||
+                      (edge.sourceId === nodeId && edge.targetId === connectingFrom)
+          )
+          if (!alreadyConnected) {
+            setFlow((prev) => ({
+              ...prev,
+              edges: [...prev.edges, { id: generateFlowId('edge'), sourceId: connectingFrom, targetId: nodeId }],
+              updatedAt: new Date().toISOString(),
+            }))
+          }
+        }
+        setConnectingFrom(null)
+      }
+    }
+
+    document.addEventListener('pointerup', handlePortClick, true)
+    return () => document.removeEventListener('pointerup', handlePortClick, true)
+  }, [connectingFrom, flow.edges])
 
   const handleAddNode = useCallback((node: FlowNode) => {
     setFlow((prev) => ({
@@ -426,6 +464,8 @@ export default function FlowBuilderPage() {
             onMoveNode={handleMoveNode}
             onAddEdge={handleAddEdge}
             onDuplicateNode={handleDuplicateNode}
+            connectingFrom={connectingFrom}
+            onSetConnectingFrom={setConnectingFrom}
             trafficMap={trafficMap}
           />
 
